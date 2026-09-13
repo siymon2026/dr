@@ -1,0 +1,244 @@
+@import url("/styles.css");
+
+/*
+  Driver portal: same layout, more polished visuals.
+  Uses global styles.css tokens + a few portal-specific overrides.
+*/
+
+.wrap{width:min(1150px, 92%); margin:auto;}
+ (max-width: 640px){ .wrap{width:100%; padding-left:12px; padding-right:12px;} }
+
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(247,244,239,.88);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border2);
+}
+html[data-theme="dark"] header{
+  background:rgba(15,15,16,.92);
+  border-bottom:1px solid var(--border2);
+}
+
+/* Override global .topbar grid for this portal */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+}
+
+.brand{display:flex; align-items:center; gap:12px}
+.logo-img{
+  width:46px;
+  height:46px;
+  border-radius:14px;
+  object-fit:contain;
+  box-shadow: var(--shadow-sm);
+  background:#000;
+  padding:6px;
+}
+.brand h1{margin:0; font-size:18px; letter-spacing:.3px}
+.brand p{margin:4px 0 0 0; color:var(--muted); font-size:12px}
+
+.actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+
+/* Generic layout helpers */
+.row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+.grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px}
+@media(max-width:860px){ .grid2{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} }
+
+.card{
+  background:var(--card);
+  border-radius:18px;
+  box-shadow: var(--shadow);
+  padding:16px;
+  border:1px solid var(--border2);
+}
+
+/* Forms */
+.input-row{display:flex; flex-direction:column; gap:6px}
+label{font-size:12px; color:var(--muted); font-weight:900}
+input,select,textarea{
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:14px;
+  outline:none;
+  background:var(--card);
+  color:var(--text);
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(255,87,34,.6); box-shadow:var(--ring)}
+textarea{resize:vertical}
+
+.btn.small{padding:8px 10px; border-radius:12px; font-weight:900; font-size:13px}
+
+/* Tabs (match admin style) */
+.tabs{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+  flex-wrap:wrap;
+  padding:6px;
+  background:rgba(0,0,0,.04);
+  border-radius:14px;
+  border:1px solid var(--border2);
+}
+html[data-theme="dark"] .tabs{background:rgba(255,255,255,.06)}
+.tab{
+  flex:1;
+  border:none;
+  background:transparent;
+  padding:10px 12px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:1000;
+  font-size:13px;
+}
+.tab.active{
+  background:var(--card);
+  box-shadow: var(--shadow-sm);
+  border:1px solid var(--border2);
+}
+
+/* Small UI bits */
+.hint{margin-top:10px; font-size:13px}
+.muted{color:var(--muted)}
+
+.big{font-size:26px; font-weight:1100; letter-spacing:.3px}
+.kpi-row{display:flex; gap:10px; flex-wrap:wrap; margin:12px 0}
+.kpi-row .dot{ background: var(--brand); }
+
+/* File previews */
+.preview{
+  width:100%;
+  height:110px;
+  object-fit:cover;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,.03);
+  display:none;
+}
+
+/* Orders */
+.orders{display:grid; gap:12px; margin-top:12px}
+.order-card{
+  background:var(--card);
+  border-radius:18px;
+  border:1px solid var(--border2);
+  box-shadow: var(--shadow-sm);
+  padding:14px;
+}
+.order-top{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+.order-id{font-weight:1000}
+.order-status{font-weight:1000; color:var(--brand2)}
+.order-line{display:flex; justify-content:space-between; gap:10px; margin-top:6px; font-size:13px}
+.order-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+
+hr{border:none; border-top:1px solid var(--border2); margin:12px 0}
+
+
+/* Sound gate (autoplay restriction helper) */
+.sound-gate{
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(17,17,17,.92);
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(0,0,0,.25);
+}
+.sound-gate-text{ font-weight: 900; }
+.sound-gate-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.sound-gate .btn{ border-color: rgba(255,255,255,.18); }
+
+
+/* Chat modal (keeps same behavior, nicer visuals) */
+.modal-card{ width:min(760px, 96vw); }
+.chat-box{ margin-top:12px; }
+.chat-msg{ display:flex; flex-direction:column; margin:8px 0; gap:4px; }
+.chat-msg.me{ align-items:flex-end; }
+
+/* Bubble colors (driver vs customer) */
+.chat-bubble{
+  display:inline-block;
+  max-width:92%;
+  padding:10px 12px;
+  border-radius:14px;
+  background: var(--brand);
+  color:#fff;
+  line-height:1.4;
+  border:1px solid rgba(255,255,255,.12);
+}
+.chat-msg.me .chat-bubble{
+  background: rgba(0,0,0,.06);
+  color: var(--text);
+  border:1px solid var(--border2);
+}
+html[data-theme="dark"] .chat-msg.me .chat-bubble{ background: rgba(255,255,255,.10); }
+.chat-meta{ font-size:11px; opacity:.75; }
+
+
+/* Profile panel */
+.profile-head{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.profile-avatar{
+  width:84px;
+  height:84px;
+  border-radius:22px;
+  object-fit:cover;
+  border:1px solid var(--border2);
+  background:rgba(0,0,0,.03);
+  box-shadow: var(--shadow-sm);
+}
+.profile-avatar.placeholder{
+  object-fit:contain;
+  padding:10px;
+  background:rgba(0,0,0,.04);
+}
+.profile-meta{
+  min-width:220px;
+}
+.profile-name{
+  font-size:18px;
+  font-weight:1100;
+  letter-spacing:.2px;
+}
+.profile-tags{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+.profile-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.profile-item{
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(0,0,0,.02);
+}
+html[data-theme="dark"] .profile-item{
+  background:rgba(255,255,255,.06);
+}
+@media(max-width:860px){
+  .profile-grid{ grid-template-columns:1fr; }
+}

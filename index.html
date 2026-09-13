@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Driver Portal</title>
+    <link rel="stylesheet" href="/driver/driver.css" />
+    <link rel="stylesheet" href="/pw-toggle.css" />
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="topbar">
+          <div class="brand">
+            <img class="logo-img" src="/icons/icon-192.png" alt="logo" />
+            <div>
+              <h1 id="driverBrand">بوابة السائق</h1>
+              <p id="driverSubtitle">استقبال الطلبات وتتبع التوصيل</p>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn ghost" id="driverLangToggle" type="button">
+              EN
+            </button>
+            <button class="btn ghost" id="driverSoundToggle" type="button">
+              🔔
+            </button>
+            <button
+              class="btn"
+              id="driverLogoutBtn"
+              type="button"
+              style="display: none"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap" style="padding-top: 18px; padding-bottom: 28px">
+      <section class="card" id="authCard">
+        <h2 id="authTitle">تسجيل السائق</h2>
+
+        <div class="tabs">
+          <button class="tab active" id="tabLogin" type="button">دخول</button>
+          <button class="tab" id="tabSignup" type="button">تسجيل</button>
+        </div>
+
+        <div id="loginForm" class="grid2">
+          <div class="input-row">
+            <label for="loginEmail" id="loginEmailLabel">Email</label>
+            <input
+              id="loginEmail"
+              type="email"
+              placeholder="driver@email.com"
+            />
+          </div>
+          <div class="input-row">
+            <label for="loginPhone" id="loginPhoneLabel">Phone</label>
+            <input id="loginPhone" type="tel" placeholder="06..." />
+          </div>
+          <div class="input-row" style="grid-column: 1/-1">
+            <label for="loginPassword" id="loginPassLabel">Password</label>
+            <input id="loginPassword" type="password" placeholder="••••••••" />
+            <small class="muted" id="loginHint"
+              >يمكنك استعمال Email أو Phone مع كلمة المرور.</small
+            >
+          </div>
+          <button class="btn primary" id="loginBtn" type="button">
+            <span id="loginText">دخول</span>
+          </button>
+        </div>
+
+        <div id="signupForm" class="grid2" style="display: none">
+          <div class="input-row">
+            <label for="signupEmail" id="signupEmailLabel">Email</label>
+            <input
+              id="signupEmail"
+              type="email"
+              placeholder="driver@email.com"
+            />
+          </div>
+          <div class="input-row">
+            <label for="signupPhone" id="signupPhoneLabel">Phone</label>
+            <input id="signupPhone" type="tel" placeholder="06..." />
+          </div>
+
+          <div class="input-row">
+            <label for="signupName" id="signupNameLabel">Name</label>
+            <input id="signupName" type="text" placeholder="اسم السائق" />
+          </div>
+
+          <div class="input-row">
+            <label for="signupCardNumber" id="signupCardLabel"
+              >رقم البطاقة (اختياري)</label
+            >
+            <input id="signupCardNumber" type="text" placeholder="ID / CIN" />
+          </div>
+
+          <div class="input-row">
+            <label for="signupPassword" id="signupPassLabel">Password</label>
+            <input id="signupPassword" type="password" placeholder="••••••••" />
+          </div>
+          <div class="input-row">
+            <label for="signupPassword2" id="signupPass2Label"
+              >Confirm Password</label
+            >
+            <input
+              id="signupPassword2"
+              type="password"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div class="panel-like" style="grid-column: 1/-1">
+            <div class="grid3">
+              <div class="input-row">
+                <label for="profilePhoto" id="profilePhotoLabel"
+                  >صورة بروفايل (اختياري)</label
+                >
+                <input id="profilePhoto" type="file" accept="image/*" />
+                <img id="prevProfile" class="preview" alt="preview" />
+              </div>
+              <div class="input-row">
+                <label for="faceWithBikeCard" id="imgFaceLabel"
+                  >صورة الوجه مع بطاقة الدراجة (اختياري)</label
+                >
+                <input id="faceWithBikeCard" type="file" accept="image/*" />
+                <img id="prevFace" class="preview" alt="preview" />
+              </div>
+              <div class="input-row">
+                <label for="idFront" id="imgFrontLabel"
+                  >بطاقة التعريف (أمام) (اختياري)</label
+                >
+                <input id="idFront" type="file" accept="image/*" />
+                <img id="prevFront" class="preview" alt="preview" />
+              </div>
+              <div class="input-row">
+                <label for="idBack" id="imgBackLabel"
+                  >بطاقة التعريف (خلف) (اختياري)</label
+                >
+                <input id="idBack" type="file" accept="image/*" />
+                <img id="prevBack" class="preview" alt="preview" />
+              </div>
+            </div>
+            <div class="hint muted" id="imgHint">
+              (يمكن أن تكون كبيرة؛ تم رفع الحد إلى 30MB).
+            </div>
+          </div>
+
+          <button class="btn good" id="signupBtn" type="button">
+            <span id="signupText">تسجيل</span>
+          </button>
+          <div class="hint" id="authHint"></div>
+        </div>
+
+        <div class="hint" id="authHintLogin"></div>
+      </section>
+
+      <section class="card" id="dashCard" style="display: none">
+        <div
+          class="row"
+          style="justify-content: space-between; align-items: center; gap: 10px"
+        >
+          <div>
+            <h2 style="margin: 0" id="dashTitle">لوحة السائق</h2>
+            <div class="muted" id="dashSub">...</div>
+          </div>
+          <div class="row" style="gap: 10px; flex-wrap: wrap">
+            <button class="btn" id="refreshOrdersBtn" type="button">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="panel-like"
+          id="pendingBox"
+          style="margin-top: 12px; display: none"
+        >
+          <h3 id="pendingTitle" style="margin: 0 0 6px 0">Pending</h3>
+          <div class="muted" id="pendingMsg">
+            حسابك قيد المراجعة. انتظر قبول المشرف ثم أعد التحديث.
+          </div>
+          <div class="row" style="margin-top: 10px">
+            <button class="btn" id="refreshStatusBtn" type="button">
+              Refresh status
+            </button>
+          </div>
+        </div>
+
+        <div id="ordersBox" style="margin-top: 12px">
+          <div class="tabs">
+            <button class="tab active" id="tabMine" type="button">
+              طلباتي
+            </button>
+            <button class="tab" id="tabAvailable" type="button">
+              طلبات متاحة
+            </button>
+            <button class="tab" id="tabWallet" type="button">المحفظة</button>
+            <button class="tab" id="tabProfile" type="button">
+              الملف الشخصي
+            </button>
+          </div>
+
+          <div id="ordersView">
+            <div class="kpi-row">
+              <span class="badge"
+                ><span class="dot"></span><span id="mineCountLabel">Mine</span>:
+                <b id="mineCount">0</b></span
+              >
+              <span class="badge"
+                ><span class="dot"></span
+                ><span id="availCountLabel">Available</span>:
+                <b id="availCount">0</b></span
+              >
+            </div>
+
+            <div class="panel-like" id="statsBox" style="margin-top: 10px">
+              <div
+                class="kpi-row"
+                style="
+                  justify-content: space-between;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                "
+              >
+                <span class="badge"
+                  ><span class="dot"></span
+                  ><span id="deliveredCountLabel">Delivered</span>:
+                  <b id="deliveredCount">0</b></span
+                >
+                <span class="badge"
+                  ><span class="dot"></span
+                  ><span id="deliveredTotalLabel">Total</span>:
+                  <b id="deliveredTotal">0</b></span
+                >
+              </div>
+              <div
+                class="muted"
+                style="font-size: 12px; margin-top: 6px"
+                id="deliveredFeeNote"
+              ></div>
+              <div
+                class="kpi-row"
+                style="margin-top: 8px; gap: 10px; flex-wrap: wrap"
+              >
+                <span class="badge"
+                  ><span class="dot"></span
+                  ><span id="earnTodayLabel">أرباح اليوم</span>:
+                  <b id="earnToday">0</b></span
+                >
+                <span class="badge"
+                  ><span class="dot"></span
+                  ><span id="earnWeekLabel">أرباح الأسبوع</span>:
+                  <b id="earnWeek">0</b></span
+                >
+                <span class="badge"
+                  ><span class="dot"></span
+                  ><span id="earnMonthLabel">أرباح الشهر</span>:
+                  <b id="earnMonth">0</b></span
+                >
+              </div>
+            </div>
+
+            <div id="ordersList" class="orders"></div>
+          </div>
+
+          <div id="walletPanel" style="display: none">
+            <div class="panel-like" style="margin-top: 12px">
+              <div
+                class="row"
+                style="
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 10px;
+                "
+              >
+                <h3 id="walletTitle" style="margin: 0">المحفظة</h3>
+                <button class="btn" id="walletRefreshBtn" type="button">
+                  تحديث
+                </button>
+              </div>
+
+              <div
+                class="row"
+                style="margin-top: 10px; gap: 10px; flex-wrap: wrap"
+              >
+                <div class="kpi">
+                  <div class="muted" id="walletBalanceLabel">الرصيد</div>
+                  <div class="big" id="walletBalance">0</div>
+                </div>
+                <div class="kpi" style="flex: 1; min-width: 260px">
+                  <div class="muted" id="bankAccountLabel">
+                    رقم الحساب البنكي
+                  </div>
+                  <div
+                    id="bankAccountValue"
+                    style="white-space: pre-wrap"
+                  ></div>
+                </div>
+              </div>
+
+              <div class="panel-like" style="margin-top: 12px">
+                <b id="topupTitle">شحن المحفظة (Topup)</b>
+                <div
+                  class="row"
+                  style="margin-top: 8px; gap: 8px; flex-wrap: wrap"
+                >
+                  <input
+                    id="topupAmount"
+                    type="number"
+                    step="0.01"
+                    placeholder="المبلغ"
+                    style="flex: 1; min-width: 150px"
+                  />
+                  <input id="topupReceipt" type="file" accept="image/*" />
+                  <button class="btn primary" id="topupSendBtn" type="button">
+                    إرسال
+                  </button>
+                </div>
+                <div class="hint" id="topupHint"></div>
+              </div>
+
+              <div class="panel-like" style="margin-top: 12px">
+                <b id="topupsListTitle">شحناتي</b>
+                <div style="height: 8px"></div>
+                <div style="overflow: auto; max-height: 40vh">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th id="dTopTime">الوقت</th>
+                        <th id="dTopAmount">المبلغ</th>
+                        <th id="dTopStatus">الحالة</th>
+                        <th id="dTopReceipt">الوصل</th>
+                      </tr>
+                    </thead>
+                    <tbody id="driverTopupsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="profilePanel" style="display: none">
+            <div class="panel-like" style="margin-top: 12px">
+              <div
+                class="row"
+                style="
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 10px;
+                "
+              >
+                <h3 id="profileTitle" style="margin: 0">الملف الشخصي</h3>
+                <button class="btn" id="profileRefreshBtn" type="button">
+                  تحديث
+                </button>
+              </div>
+
+              <div class="profile-head" style="margin-top: 12px">
+                <img
+                  id="driverProfileImg"
+                  class="profile-avatar"
+                  alt="profile"
+                />
+                <div class="profile-meta">
+                  <div class="profile-name" id="driverProfileName">—</div>
+                  <div class="muted" id="driverProfileContact"></div>
+                  <div class="profile-tags">
+                    <span class="tag" id="driverProfileStatus"></span>
+                    <span class="tag" id="driverProfileWalletTag"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel-like" style="margin-top: 12px">
+                <div class="profile-grid">
+                  <div class="profile-item">
+                    <div class="muted" id="profileEmailLabel">Email</div>
+                    <div id="profileEmail"></div>
+                  </div>
+                  <div class="profile-item">
+                    <div class="muted" id="profilePhoneLabel">Phone</div>
+                    <div id="profilePhone"></div>
+                  </div>
+                  <div class="profile-item">
+                    <div class="muted" id="profileCardLabel">Card Number</div>
+                    <div id="profileCard"></div>
+                  </div>
+                  <div class="profile-item">
+                    <div class="muted" id="profileCreatedLabel">Created</div>
+                    <div id="profileCreated"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hint muted" id="profileHint"></div>
+
+              <div
+                style="
+                  display: flex;
+                  gap: 10px;
+                  margin-top: 20px;
+                  flex-wrap: wrap;
+                "
+              >
+                <button
+                  id="profileLogoutBtn"
+                  type="button"
+                  style="
+                    padding: 10px 20px;
+                    background-color: #f3f4f6;
+                    color: #374151;
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    font-weight: bold;
+                    transition: 0.2s;
+                  "
+                >
+                  تسجيل خروج
+                </button>
+                <button
+                  id="profileDeleteBtn"
+                  type="button"
+                  style="
+                    padding: 10px 20px;
+                    background-color: #fee2e2;
+                    color: #dc2626;
+                    border: 1px solid #fca5a5;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    font-weight: bold;
+                    transition: 0.2s;
+                  "
+                >
+                  حذف الحساب
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hint" id="dashHint"></div>
+      </section>
+    </main>
+
+    <div class="modal" id="orderChatModal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <b id="orderChatTitle">دردشة الطلب</b>
+          <button class="btn ghost small" id="closeOrderChatBtn" type="button">
+            ✕
+          </button>
+        </div>
+
+        <div class="chat-box" id="orderChatBox"></div>
+
+        <div
+          class="row"
+          style="gap: 8px; margin-top: 10px; align-items: center"
+        >
+          <input
+            id="orderChatInput"
+            class="input"
+            type="text"
+            placeholder="اكتب رسالة..."
+          />
+          <button class="btn good small" id="orderChatSendBtn" type="button">
+            إرسال
+          </button>
+        </div>
+
+        <div class="hint muted" id="orderChatHint"></div>
+      </div>
+    </div>
+    <script src="/pw-toggle.js"></script>
+    <script src="/driver/driver.js"></script>
+  </body>
+</html>
