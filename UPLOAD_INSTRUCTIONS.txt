@@ -1,0 +1,175 @@
+╔════════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║          🚗 Driver Portal - FileZilla Upload Guide 🚗             ║
+║                                                                    ║
+║               بوابة السائق - تعليمات الرفع على FileZilla         ║
+║                                                                    ║
+╚════════════════════════════════════════════════════════════════════╝
+
+════════════════════════════════════════════════════════════════════
+📂 CONTENTS (ما يحتويه هذا الملف):
+════════════════════════════════════════════════════════════════════
+
+✓ driver.js          ← Main application logic
+✓ driver.css         ← Styling and CSS
+✓ index.html         ← Main HTML page
+✓ .env.local         ← Server configuration (ALREADY READY!)
+✓ UPLOAD_INSTRUCTIONS.txt ← This file
+
+════════════════════════════════════════════════════════════════════
+🔧 SERVER INFORMATION (معلومات السيرفر):
+════════════════════════════════════════════════════════════════════
+
+Database Type: PostgreSQL
+Host: 127.0.0.1
+Port: 5432
+Username: postgres
+Password: postgres
+Database Name: app_db
+
+✅ All information is ALREADY in .env.local file!
+
+════════════════════════════════════════════════════════════════════
+📤 QUICK UPLOAD STEPS (خطوات الرفع السريعة):
+════════════════════════════════════════════════════════════════════
+
+STEP 1: Open FileZilla
+─────────────────────
+Launch FileZilla application
+
+STEP 2: Connect to Server
+──────────────────────────
+File → Site Manager → New Site
+
+Enter your server details:
+  Host: [Your Server IP/Domain]
+  Protocol: SFTP (Port 22) or FTP (Port 21)
+  User: [Your server username]
+  Pass: [Your server password]
+
+Click "Connect"
+
+STEP 3: Navigate to Upload Folder
+──────────────────────────────────
+On the server side (right panel), navigate to:
+
+  /home/username/public/driver/
+  OR
+  /public_html/driver/
+  OR
+  /var/www/html/driver/
+
+(Ask your hosting provider if unsure)
+
+STEP 4: Upload All Files
+────────────────────────
+Drag and drop or upload these 4 files:
+
+  ✓ driver.js
+  ✓ driver.css
+  ✓ index.html
+  ✓ .env.local
+
+Make sure all files are uploaded successfully!
+
+STEP 5: Set Permissions
+───────────────────────
+Right-click each file → Properties → Permissions
+
+Set to: 644 (rw-r--r--)
+
+This ensures proper file access.
+
+STEP 6: Restart Your Server
+────────────────────────────
+Connect via SSH or use your hosting control panel:
+
+  Command: pm2 restart app
+  Or: systemctl restart app
+  Or use cPanel/Plesk to restart
+
+Wait 30 seconds for server to restart.
+
+════════════════════════════════════════════════════════════════════
+✅ VERIFY UPLOAD SUCCESS (تأكد من نجاح الرفع):
+════════════════════════════════════════════════════════════════════
+
+After upload, verify these points:
+
+☑ All 4 files are in the correct folder
+  جميع الملفات الأربعة موجودة في المجلد الصحيح
+
+☑ .env.local contains database information
+  .env.local يحتوي على معلومات قاعدة البيانات
+
+☑ File permissions are set to 644
+  الأذونات مضبوطة على 644
+
+☑ Server has been restarted
+  تم إعادة تشغيل السيرفر
+
+☑ Application is running without errors
+  التطبيق يعمل بدون أخطاء
+
+════════════════════════════════════════════════════════════════════
+⚠️  IMPORTANT NOTES (ملاحظات مهمة):
+════════════════════════════════════════════════════════════════════
+
+🔴 DO NOT DELETE .env.local
+   لا تحذف .env.local - يحتوي على إعدادات مهمة
+
+🔴 DO NOT MODIFY .env.local without expert help
+   لا تعدل .env.local بدون معرفة تقنية
+
+🔴 The folder path may vary
+   المسار قد يختلف حسب نوع السيرفر الخاص بك
+
+🔴 Always restart the server after upload
+   أعد تشغيل السيرفر دائماً بعد الرفع
+
+🔴 Use SFTP when possible (more secure than FTP)
+   استخدم SFTP إن أمكن (أكثر أماناً من FTP)
+
+════════════════════════════════════════════════════════════════════
+🆘 TROUBLESHOOTING (حل المشاكل الشائعة):
+════════════════════════════════════════════════════════════════════
+
+ISSUE: Cannot connect to server in FileZilla
+SOLUTION: Check host, port, username, and password
+         اتصل بمضيف الويب للتحقق من البيانات
+
+ISSUE: Files won't upload
+SOLUTION: Check folder permissions and disk space
+         تأكد من أن لديك مساحة كافية والأذونات صحيحة
+
+ISSUE: App doesn't work after upload
+SOLUTION: Restart server, check .env.local is uploaded
+         تأكد من وجود .env.local وأعد تشغيل السيرفر
+
+ISSUE: Getting permission denied errors
+SOLUTION: Set file permissions to 644 with FileZilla
+         استخدم FileZilla لتعيين الأذونات
+
+════════════════════════════════════════════════════════════════════
+⏱️  TIME & RESULT:
+════════════════════════════════════════════════════════════════════
+
+⏱️  Time Required: Just 5 minutes!
+🎯 Result: Fully functional Driver Portal application
+✅ Status: Ready for deployment
+
+════════════════════════════════════════════════════════════════════
+📞 SUPPORT:
+════════════════════════════════════════════════════════════════════
+
+If you need help:
+1. Check file names (case-sensitive on Linux)
+2. Verify folder path with your hosting provider
+3. Check server logs for detailed error messages
+4. Make sure Node.js/PostgreSQL are running
+
+════════════════════════════════════════════════════════════════════
+
+Prepared: September 13, 2026
+Status: ✅ Ready to Upload
+Enjoy your Driver Portal! 🚀

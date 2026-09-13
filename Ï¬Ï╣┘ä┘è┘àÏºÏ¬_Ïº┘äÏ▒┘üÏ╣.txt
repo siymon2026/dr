@@ -1,0 +1,139 @@
+╔════════════════════════════════════════════════════════════════════╗
+║                                                                    ║
+║       🚗 تعليمات رفع بوابة السائق على FileZilla 🚗              ║
+║                                                                    ║
+║              Driver Portal Upload Instructions                     ║
+║                                                                    ║
+╚════════════════════════════════════════════════════════════════════╝
+
+════════════════════════════════════════════════════════════════════
+📂 محتوى هذا الملف (Contents):
+════════════════════════════════════════════════════════════════════
+
+✓ driver.js          ← ملف منطق التطبيق (Main Logic)
+✓ driver.css         ← ملف التنسيقات (Styling)
+✓ index.html         ← صفحة HTML الرئيسية (Main Page)
+✓ .env.local         ← إعدادات السيرفر (Server Config - READY!)
+✓ تعليمات_الرفع.txt  ← هذا الملف
+
+════════════════════════════════════════════════════════════════════
+🔧 معلومات السيرفر (Server Info):
+════════════════════════════════════════════════════════════════════
+
+Database: PostgreSQL
+Host: 127.0.0.1
+Port: 5432
+User: postgres
+Password: postgres
+Database: app_db
+
+(جميع المعلومات موجودة بالفعل في ملف .env.local)
+
+════════════════════════════════════════════════════════════════════
+📤 خطوات الرفع على FileZilla (Upload Steps):
+════════════════════════════════════════════════════════════════════
+
+1️⃣  افتح FileZilla
+    Open FileZilla
+
+2️⃣  اتصل بالسيرفر الخاص بك:
+    Connect to your server:
+    
+    Host: [عنوان السيرفر الخاص بك / Your Server IP]
+    Port: 22 (SFTP) أو 21 (FTP)
+    Username: [اسم المستخدم / Your Username]
+    Password: [كلمة السر / Your Password]
+
+3️⃣  انتقل إلى مجلد المشروع:
+    Navigate to project folder:
+    
+    /home/username/public/driver/
+    أو
+    /public_html/driver/
+    أو
+    /var/www/html/driver/
+
+4️⃣  رفع جميع الملفات:
+    Upload ALL files:
+    
+    ✓ driver.js
+    ✓ driver.css
+    ✓ index.html
+    ✓ .env.local
+
+5️⃣  تأكد من الأذونات:
+    Check permissions:
+    
+    chmod 644 driver.js
+    chmod 644 driver.css
+    chmod 644 index.html
+    chmod 644 .env.local
+
+6️⃣  أعد تشغيل السيرفر:
+    Restart your server:
+    
+    pm2 restart app
+    أو
+    systemctl restart app
+    أو أعد تشغيل الخدمة من لوحة التحكم
+
+════════════════════════════════════════════════════════════════════
+✅ التحقق من النجاح (Verify Success):
+════════════════════════════════════════════════════════════════════
+
+بعد الرفع، تأكد من:
+After upload, verify:
+
+☑ جميع الملفات موجودة في المجلد الصحيح
+  All files are in the correct directory
+
+☑ ملف .env.local يحتوي على معلومات قاعدة البيانات
+  .env.local contains database info
+
+☑ الأذونات صحيحة (644 للملفات)
+  Permissions are correct (644 for files)
+
+☑ السيرفر يعمل بدون أخطاء
+  Server running without errors
+
+════════════════════════════════════════════════════════════════════
+⚠️  ملاحظات مهمة (Important Notes):
+════════════════════════════════════════════════════════════════════
+
+⚡ لا تحذف ملف .env.local - هو يحتوي على إعدادات السيرفر المهمة
+   Don't delete .env.local - it contains important server settings
+
+⚡ تأكد من أن مسار السيرفر صحيح (قد يختلف حسب نوع الخادم)
+   Make sure server path is correct (may vary by server type)
+
+⚡ قد تحتاج إلى إعادة تشغيل كامل الخادم
+   You may need to restart the entire server
+
+⚡ إذا حدث خطأ، تحقق من سجلات الأخطاء (logs)
+   If error occurs, check server logs
+
+════════════════════════════════════════════════════════════════════
+❓ تحتاج إلى مساعدة؟ (Need Help?)
+════════════════════════════════════════════════════════════════════
+
+المشكلة: لا يمكن الاتصال بـ FileZilla
+الحل: تحقق من بيانات الاتصال (Host, Port, Username, Password)
+
+المشكلة: الملفات لا ترتفع
+الحل: تأكد من الأذونات والمسار الصحيح
+
+المشكلة: التطبيق لا يعمل بعد الرفع
+الحل: تأكد من أن ملف .env.local موجود، أعد تشغيل السيرفر
+
+════════════════════════════════════════════════════════════════════
+
+⏱️  الوقت المتوقع: 5 دقائق فقط
+   Estimated Time: Just 5 minutes!
+
+🎯 النتيجة: تطبيق بوابة السائق يعمل بكفاءة عالية
+   Result: Driver portal app running at full efficiency
+
+════════════════════════════════════════════════════════════════════
+
+تم الإعداد: 13 سبتمبر 2026
+Ready to upload! 🚀
