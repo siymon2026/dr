@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /messages
+Disallow: /my-listings
+Disallow: /favorites
+Disallow: /notifications
+Disallow: /api/
+
+Sitemap: /sitemap.xml

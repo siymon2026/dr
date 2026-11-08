@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bii3 & Chri Online">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12a594"/>
+      <stop offset="1" stop-color="#0b6558"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#g)"/>
+  <path d="M12 25 32 13l20 12-20 12Z" fill="#ffffff" opacity=".95"/>
+  <path d="m12 35 20 12 20-12" fill="none" stroke="#ffffff" stroke-opacity=".62" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="46" cy="18" r="6.4" fill="#ff7a45"/>
+</svg>
