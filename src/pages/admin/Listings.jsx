@@ -144,7 +144,7 @@ export default function AdminListings() {
                   <td>
                     <div className="row" style={{ gap: 8 }}>
                       {l.image ? (
-                        <img src={l.image} alt="" style={{ width: 40, height: 32, borderRadius: 6, objectFit: 'cover' }} />
+                        <img src={l.image} alt="" style={{ width: 40, height: 32, borderRadius: 6, objectFit: 'cover' }} loading="lazy" decoding="async" />
                       ) : (
                         <span style={{ width: 40, height: 32, borderRadius: 6, background: 'var(--surface-2)', display: 'grid', placeItems: 'center' }}>
                           <Icon name="image" size={14} />
@@ -214,7 +214,7 @@ export default function AdminListings() {
       <Modal open={!!preview} onClose={() => setPreview(null)} title={preview?.title} size={640}>
         {preview && (
           <div className="stack">
-            {preview.image && <img src={preview.image} alt="" style={{ borderRadius: 10, maxHeight: 260, objectFit: 'cover', width: '100%' }} />}
+            {preview.image && <img src={preview.image} alt="" style={{ borderRadius: 10, maxHeight: 260, objectFit: 'cover', width: '100%' }} loading="lazy" decoding="async" />}
             <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
               <StatusChip status={preview.status} />
               <span className="chip">{preview.category_ar}</span>

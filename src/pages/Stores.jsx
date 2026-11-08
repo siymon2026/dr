@@ -79,7 +79,7 @@ export default function Stores() {
         {items?.map((s) => (
           <Link key={s.id} to={`/stores/${s.slug}`} className="card" style={{ overflow: 'hidden' }}>
             <div style={{ height: 92, background: 'linear-gradient(135deg, var(--brand-600), var(--brand-800))', position: 'relative' }}>
-              {s.cover && <img src={s.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              {s.cover && <img src={s.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />}
               {s.featured && <span className="flag flag-featured" style={{ position: 'absolute', top: 10, insetInlineEnd: 10 }}>{t('listing.featured')}</span>}
             </div>
             <div style={{ padding: '0 14px 14px', marginTop: -26 }}>

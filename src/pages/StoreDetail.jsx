@@ -83,7 +83,7 @@ export default function StoreDetail() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ height: 168, background: 'linear-gradient(135deg, var(--brand-600), var(--brand-900))', position: 'relative' }}>
-          {s.cover && <img src={s.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+          {s.cover && <img src={s.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />}
           {s.status === 'pending' && (
             <span className="flag flag-new" style={{ position: 'absolute', top: 12, insetInlineStart: 12 }}>{t('store.pending')}</span>
           )}

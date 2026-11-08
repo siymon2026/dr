@@ -199,7 +199,7 @@ export default function StoreManage() {
           </div>
         </div>
         <div className="card card-pad row" style={{ gap: 12, flex: '1 1 260px' }}>
-          {store.cover ? <img src={store.cover} alt="" style={{ width: 84, height: 54, borderRadius: 8, objectFit: 'cover' }} /> : <span className="stat-icon" style={{ width: 54, height: 54 }}><Icon name="image" size={20} /></span>}
+          {store.cover ? <img src={store.cover} alt="" style={{ width: 84, height: 54, borderRadius: 8, objectFit: 'cover' }} loading="lazy" decoding="async" /> : <span className="stat-icon" style={{ width: 54, height: 54 }}><Icon name="image" size={20} /></span>}
           <div className="stack" style={{ gap: 4 }}>
             <b className="small">{t('store.cover')}</b>
             <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => uploadAsset(e.target.files?.[0], 'cover')} />

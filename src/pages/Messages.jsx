@@ -171,7 +171,7 @@ export default function Messages() {
               onClick={() => navigate(`/messages/${c.id}`)}
             >
               {c.listing.image ? (
-                <img src={c.listing.image} alt="" />
+                <img src={c.listing.image} alt="" loading="lazy" decoding="async" />
               ) : (
                 <div style={{ width: 46, height: 46, borderRadius: 10, background: 'var(--surface-2)', display: 'grid', placeItems: 'center' }}>
                   <Icon name="image" size={18} />
@@ -216,7 +216,7 @@ export default function Messages() {
                 </div>
                 <Link to={`/listing/${thread.listing.public_id}`} className="desktop-only" style={{ flex: '0 0 auto' }}>
                   {thread.listing.image && (
-                    <img src={thread.listing.image} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} />
+                    <img src={thread.listing.image} alt="" style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover' }} loading="lazy" decoding="async" />
                   )}
                 </Link>
                 <button type="button" className="icon-btn" onClick={toggleBlock} title={blocked ? t('messages.unblock') : t('messages.block')} aria-label="block">
@@ -227,7 +227,7 @@ export default function Messages() {
               <div className="chat-scroll" ref={scrollRef}>
                 <div className="chat-day">
                   <Link to={`/listing/${thread.listing.public_id}`} className="row" style={{ gap: 8, justifyContent: 'center' }}>
-                    {thread.listing.image && <img src={thread.listing.image} alt="" style={{ width: 30, height: 30, borderRadius: 6, objectFit: 'cover' }} />}
+                    {thread.listing.image && <img src={thread.listing.image} alt="" style={{ width: 30, height: 30, borderRadius: 6, objectFit: 'cover' }} loading="lazy" decoding="async" />}
                     <span>{thread.listing.title} · {formatPrice(thread.listing.price, thread.listing.currency, lang)}</span>
                   </Link>
                 </div>

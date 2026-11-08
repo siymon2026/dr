@@ -116,7 +116,7 @@ export default function MyListings() {
             <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <Link to={`/listing/${l.public_id}`} style={{ flex: '0 0 96px' }}>
                 {l.image ? (
-                  <img src={l.image} alt="" style={{ width: 96, height: 76, objectFit: 'cover', borderRadius: 10 }} />
+                  <img src={l.image} alt="" style={{ width: 96, height: 76, objectFit: 'cover', borderRadius: 10 }} loading="lazy" decoding="async" />
                 ) : (
                   <div style={{ width: 96, height: 76, borderRadius: 10, background: 'var(--surface-2)', display: 'grid', placeItems: 'center' }}>
                     <Icon name="image" size={22} style={{ color: 'var(--ink-300)' }} />

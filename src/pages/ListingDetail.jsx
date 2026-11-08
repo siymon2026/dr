@@ -527,7 +527,7 @@ export default function ListingDetail() {
         }
       >
         <div className="row" style={{ gap: 10 }}>
-          <img src={images[0]} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: 'cover' }} />
+          <img src={images[0]} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: 'cover' }} loading="lazy" decoding="async" />
           <div style={{ minWidth: 0 }}>
             <b className="truncate" style={{ fontSize: '0.88rem' }}>{listing.title}</b>
             <div className="small muted">{formatPrice(listing.price, listing.currency, lang)}</div>

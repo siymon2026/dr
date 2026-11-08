@@ -105,7 +105,7 @@ function PhotoManager({ listingId, images, setImages, toast, errorMessage, t }) 
         <div className="thumb-grid">
           {images.map((img) => (
             <div key={img.id} className={`thumb ${img.is_primary ? 'primary' : ''}`}>
-              <img src={img.thumb || img.path} alt="" />
+              <img src={img.thumb || img.path} alt="" loading="lazy" decoding="async" />
               <button type="button" className="thumb-del" onClick={() => remove(img)} aria-label={t('post.removePhoto')}>
                 <Icon name="close" size={12} />
               </button>
