@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 
 import { config } from './config.js';
+import { db } from './lib/db.js';
 import { logger } from './lib/logger.js';
 import { attachUser, ensureCsrfCookie, serializeUser } from './lib/auth.js';
 import { csrfProtect, limiters } from './lib/http.js';
@@ -130,6 +131,52 @@ export function createApp() {
   app.use('/api/content', contentRoutes);
   app.use('/api/admin', adminRoutes);
   registerWebhookRoutes(app);
+
+  // ---------- SEO: sitemap.xml built from the database ----------
+  app.get('/sitemap.xml', (req, res) => {
+    const base = (config.appUrl || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const urls = [
+      { loc: '/', priority: '1.0', changefreq: 'daily' },
+      { loc: '/listings', priority: '0.9', changefreq: 'hourly' },
+      { loc: '/categories', priority: '0.7', changefreq: 'weekly' },
+      { loc: '/stores', priority: '0.7', changefreq: 'daily' },
+      { loc: '/pricing', priority: '0.6', changefreq: 'monthly' },
+      { loc: '/help', priority: '0.4', changefreq: 'monthly' },
+      { loc: '/about', priority: '0.3', changefreq: 'yearly' },
+      { loc: '/contact', priority: '0.3', changefreq: 'yearly' },
+      { loc: '/page/privacy', priority: '0.2', changefreq: 'yearly' },
+      { loc: '/page/terms', priority: '0.2', changefreq: 'yearly' },
+    ];
+    try {
+      db.prepare("SELECT public_id, updated_at FROM listings WHERE status='active' ORDER BY created_at DESC LIMIT 20000")
+        .all()
+        .forEach((l) => urls.push({
+          loc: `/listing/${l.public_id}`,
+          lastmod: new Date(l.updated_at).toISOString().slice(0, 10),
+          priority: '0.8',
+          changefreq: 'weekly',
+        }));
+      db.prepare('SELECT slug FROM categories WHERE active = 1')
+        .all()
+        .forEach((c) => urls.push({ loc: `/category/${c.slug}`, priority: '0.6', changefreq: 'daily' }));
+      db.prepare("SELECT slug, updated_at FROM stores WHERE status='active' LIMIT 5000")
+        .all()
+        .forEach((s) => urls.push({
+          loc: `/stores/${s.slug}`,
+          lastmod: new Date(s.updated_at).toISOString().slice(0, 10),
+          priority: '0.6',
+          changefreq: 'weekly',
+        }));
+    } catch {
+      /* database unavailable — still serve the static entries */
+    }
+    const body = urls
+      .map((u) => `  <url><loc>${base}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}<changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`)
+      .join('\n');
+    res.type('application/xml').set('Cache-Control', 'public, max-age=1800').send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`,
+    );
+  });
 
   app.use('/api', (_req, res) => res.status(404).json({ error: { code: 'not_found', message: 'route_not_found' } }));
 
