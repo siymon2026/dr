@@ -2470,6 +2470,20 @@ html[dir='rtl'] .toast {
   transform: rotate(-0deg);
 }
 
+/* maintenance / warning banner */
+.maintenance-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, transparent);
+}
+
 /* lightbox */
 .lightbox {
   position: fixed;

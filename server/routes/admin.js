@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db, now, toJson, fromJson } from '../lib/db.js';
+import { getSettings, saveSetting, invalidateSettings, SETTING_DEFAULTS } from '../lib/settings.js';
 import { z, validate, text, booleanish } from '../lib/validation.js';
 import { requireAuth, requirePermission, loadUser, serializeUser } from '../lib/auth.js';
 import { can, canAssignRole, roleRank, ROLES } from '../lib/permissions.js';
@@ -11,6 +12,8 @@ import { moderateListing } from '../lib/listings.js';
 import { notify, NOTIFICATION_TYPES } from '../lib/notify.js';
 import { onlineUserCount } from '../lib/realtime.js';
 import { applyPaidOrder } from '../lib/billing.js';
+import { sendMail } from '../lib/mailer.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -1298,7 +1301,16 @@ router.get(
   requirePermission('platform.settings'),
   asyncHandler(async (_req, res) => {
     const rows = db.prepare('SELECT key, value, updated_at FROM settings ORDER BY key').all();
-    res.json({ items: rows.map((r) => ({ ...r, value: fromJson(r.value, r.value) })) });
+    const stored = Object.fromEntries(rows.map((r) => [r.key, fromJson(r.value, r.value)]));
+    const types = Object.fromEntries(Object.entries(SETTING_DEFAULTS).map(([k, v]) => [k, typeof v]));
+    res.json({
+      items: rows.map((r) => ({ ...r, value: fromJson(r.value, r.value) })),
+      types,
+      effective: getSettings(),
+      defaults: SETTING_DEFAULTS,
+      known_keys: Object.keys(SETTING_DEFAULTS),
+      override_keys: Object.keys(stored),
+    });
   }),
 );
 
@@ -1307,14 +1319,26 @@ router.put(
   requirePermission('platform.settings'),
   asyncHandler(async (req, res) => {
     const key = String(req.params.key).slice(0, 60);
+    if (!(key in SETTING_DEFAULTS)) throw badRequest('unknown_setting_key');
     const value = req.body?.value;
     if (value === undefined) throw badRequest('value_required');
-    const serialized = typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value);
-    db.prepare(
-      `INSERT INTO settings (key, value, updated_at) VALUES (?,?,?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
-    ).run(key, serialized, now());
-    audit(req, 'setting.updated', { meta: { key } });
+    const fallback = SETTING_DEFAULTS[key];
+    if (typeof fallback === 'boolean' && typeof value !== 'boolean') throw badRequest('invalid_setting_type');
+    if (typeof fallback === 'number' && !Number.isFinite(Number(value))) throw badRequest('invalid_setting_type');
+    saveSetting(key, typeof fallback === 'number' ? Number(value) : value);
+    audit(req, 'setting.updated', { meta: { key, value } });
+    res.json({ ok: true, effective: getSettings() });
+  }),
+);
+
+router.delete(
+  '/settings/:key',
+  requirePermission('platform.settings'),
+  asyncHandler(async (req, res) => {
+    const key = String(req.params.key).slice(0, 60);
+    db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+    invalidateSettings();
+    audit(req, 'setting.reset', { meta: { key } });
     res.json({ ok: true });
   }),
 );
@@ -1397,6 +1421,165 @@ router.get(
       )
       .all(params);
     res.json({ items: rows });
+  }),
+);
+
+/* ============================== contact inbox ============================== */
+
+router.get(
+  '/inbox',
+  requirePermission('platform.content'),
+  asyncHandler(async (req, res) => {
+    const where = ['1=1'];
+    const params = {};
+    if (req.query.status && req.query.status !== 'all') {
+      where.push('status = @status');
+      params.status = String(req.query.status);
+    }
+    if (req.query.q) {
+      where.push('(name LIKE @q OR email LIKE @q OR subject LIKE @q OR message LIKE @q)');
+      params.q = `%${String(req.query.q).slice(0, 60)}%`;
+    }
+    params.limit = Math.min(200, Number(req.query.limit) || 60);
+    const items = db
+      .prepare(
+        `SELECT * FROM contact_messages WHERE ${where.join(' AND ')}
+         ORDER BY CASE status WHEN 'new' THEN 0 WHEN 'open' THEN 1 ELSE 2 END, created_at DESC
+         LIMIT @limit`,
+      )
+      .all(params);
+    const counts = db.prepare('SELECT status, COUNT(*) c FROM contact_messages GROUP BY status').all();
+    res.json({
+      items,
+      counts: Object.fromEntries(counts.map((r) => [r.status, r.c])),
+      unread: counts.find((r) => r.status === 'new')?.c || 0,
+    });
+  }),
+);
+
+router.put(
+  '/inbox/:id',
+  requirePermission('platform.content'),
+  asyncHandler(async (req, res) => {
+    const d = validate(
+      z.object({ status: z.enum(['new', 'open', 'answered', 'closed', 'spam']), note: text(0, 2000).optional() }),
+      req.body,
+    );
+    const msg = db.prepare('SELECT * FROM contact_messages WHERE id = ?').get(Number(req.params.id));
+    if (!msg) throw notFound('message_not_found');
+    db.prepare('UPDATE contact_messages SET status = ? WHERE id = ?').run(d.status, msg.id);
+    if (d.note) {
+      const reply = `\n\n--- رد الإدارة / Réponse (${new Date().toISOString().slice(0, 16).replace('T', ' ')})\n${d.note}`;
+      db.prepare('UPDATE contact_messages SET message = message || ? WHERE id = ?').run(reply, msg.id);
+      await sendMail({ to: msg.email, subject: `Re: ${msg.subject || 'Bii3 & Chri Online'}`, text: d.note }).catch((err) =>
+        logger.warn({ err }, 'contact reply mail failed'),
+      );
+      audit(req, 'contact.replied', { entityType: 'contact_message', entityId: msg.id });
+    } else {
+      audit(req, 'contact.status_changed', { entityType: 'contact_message', entityId: msg.id, meta: { status: d.status } });
+    }
+    res.json({ ok: true });
+  }),
+);
+
+router.delete(
+  '/inbox/:id',
+  requirePermission('platform.content'),
+  asyncHandler(async (req, res) => {
+    db.prepare('DELETE FROM contact_messages WHERE id = ?').run(Number(req.params.id));
+    audit(req, 'contact.deleted', { entityType: 'contact_message', entityId: Number(req.params.id) });
+    res.json({ ok: true });
+  }),
+);
+
+/* ============================== search analytics ============================== */
+
+router.get(
+  '/search-analytics',
+  requirePermission('platform.content'),
+  asyncHandler(async (req, res) => {
+    const days = Math.min(365, Number(req.query.days) || 30);
+    const since = now() - days * 864e5;
+    const top = db
+      .prepare(
+        `SELECT query, COUNT(*) hits, ROUND(AVG(results), 1) avg_results, MAX(created_at) last_seen
+         FROM search_queries WHERE created_at >= ?
+         GROUP BY lower(trim(query)) ORDER BY hits DESC LIMIT 50`,
+      )
+      .all(since);
+    const empty = db
+      .prepare(
+        `SELECT query, COUNT(*) hits, MAX(created_at) last_seen FROM search_queries
+         WHERE created_at >= ? AND results = 0
+         GROUP BY lower(trim(query)) ORDER BY hits DESC LIMIT 30`,
+      )
+      .all(since);
+    const totals = db
+      .prepare(
+        `SELECT COUNT(*) searches, COALESCE(SUM(CASE WHEN results = 0 THEN 1 ELSE 0 END), 0) empty_results,
+                COALESCE(SUM(results), 0) result_sum
+         FROM search_queries WHERE created_at >= ?`,
+      )
+      .get(since);
+    const daily = db
+      .prepare(
+        `SELECT date(created_at / 1000, 'unixepoch') day, COUNT(*) searches
+         FROM search_queries WHERE created_at >= ? GROUP BY day ORDER BY day DESC LIMIT 30`,
+      )
+      .all(since);
+    res.json({ days, top, empty, totals, daily: daily.reverse() });
+  }),
+);
+
+/* ============================== payment webhooks log ============================== */
+
+router.get(
+  '/webhooks',
+  requirePermission('finance.view'),
+  asyncHandler(async (req, res) => {
+    const items = db
+      .prepare('SELECT * FROM payment_webhooks ORDER BY id DESC LIMIT ?')
+      .all(Math.min(200, Number(req.query.limit) || 60));
+    const stats = db
+      .prepare(
+        `SELECT COUNT(*) total,
+                COALESCE(SUM(signature_ok), 0) valid_signature,
+                COALESCE(SUM(processed), 0) processed,
+                COALESCE(SUM(CASE WHEN signature_ok = 0 THEN 1 ELSE 0 END), 0) rejected
+         FROM payment_webhooks`,
+      )
+      .get();
+    res.json({ items, stats });
+  }),
+);
+
+/* ============================== SEO overview ============================== */
+
+router.get(
+  '/seo',
+  requirePermission('platform.content'),
+  asyncHandler(async (_req, res) => {
+    const active = db.prepare("SELECT COUNT(*) c FROM listings WHERE status='active'").get().c;
+    const stores = db.prepare("SELECT COUNT(*) c FROM stores WHERE status='active'").get().c;
+    const categories = db.prepare('SELECT COUNT(*) c FROM categories WHERE active = 1').get().c;
+    const pages = db.prepare('SELECT COUNT(*) c FROM pages WHERE published = 1').get().c;
+    const missingDescriptions = db
+      .prepare("SELECT COUNT(*) c FROM listings WHERE status='active' AND (description IS NULL OR length(description) < 60)")
+      .get().c;
+    const missingImages = db
+      .prepare(
+        `SELECT COUNT(*) c FROM listings l WHERE l.status='active'
+         AND NOT EXISTS (SELECT 1 FROM listing_images i WHERE i.listing_id = l.id)`,
+      )
+      .get().c;
+    const lastListing = db.prepare("SELECT MAX(updated_at) t FROM listings WHERE status='active'").get().t;
+    res.json({
+      urls: { listings: active, stores, categories, pages, total: active + stores + categories + pages + 9 },
+      health: { missing_descriptions: missingDescriptions, missing_images: missingImages },
+      last_listing_update: lastListing,
+      sitemap_url: '/sitemap.xml',
+      robots_url: '/robots.txt',
+    });
   }),
 );
 

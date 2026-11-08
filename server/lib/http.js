@@ -1,7 +1,8 @@
 import rateLimit from 'express-rate-limit';
 import { config } from '../config.js';
 import { csrfTokenFor, timingSafeEqualStr, clientIp } from './security.js';
-import { tooMany, forbidden } from './errors.js';
+import { tooMany, forbidden, AppError } from './errors.js';
+import { getSettings } from './settings.js';
 
 const skip = () => !config.security.rateLimitEnabled;
 
@@ -34,6 +35,14 @@ export const limiters = {
  */
 export function csrfProtect(req, _res, next) {
   if (!config.security.csrfEnabled) return next();
+  // Maintenance mode: read-only, so mutations are refused before CSRF (which may
+  // legitimately fail for visitors holding a stale token from before the switch).
+  if (req.method !== 'GET' && getSettings().maintenance_mode) {
+    const staffRoles = ['support', 'finance', 'moderator', 'admin', 'superadmin'];
+    if (!req.user || !staffRoles.includes(req.user.role)) {
+      return next(new AppError(503, 'maintenance_mode', 'maintenance_mode'));
+    }
+  }
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   if (req.path.startsWith('/api/webhooks/')) return next(); // verified by provider signature
   const expected = csrfTokenFor(req.session?.id || 'anon');

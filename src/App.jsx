@@ -13,6 +13,7 @@ const Stores = lazy(() => import('./pages/Stores.jsx'));
 const StoreDetail = lazy(() => import('./pages/StoreDetail.jsx'));
 const UserProfile = lazy(() => import('./pages/UserProfile.jsx'));
 const Pricing = lazy(() => import('./pages/Pricing.jsx'));
+const PlanDetail = lazy(() => import('./pages/PlanDetail.jsx'));
 
 const { Page, Help, About, Contact, NotFound } = {
   Page: lazy(() => import('./pages/Content.jsx').then((m) => ({ default: m.Page }))),
@@ -54,6 +55,10 @@ const AdminBroadcast = lazy(() => import('./pages/admin/Platform.jsx').then((m) 
 const AdminSettings = lazy(() => import('./pages/admin/Platform.jsx').then((m) => ({ default: m.AdminSettings })));
 const AdminStaff = lazy(() => import('./pages/admin/Platform.jsx').then((m) => ({ default: m.AdminStaff })));
 const AdminAudit = lazy(() => import('./pages/admin/Platform.jsx').then((m) => ({ default: m.AdminAudit })));
+const AdminInbox = lazy(() => import('./pages/admin/Inbox.jsx'));
+const AdminSearchAnalytics = lazy(() => import('./pages/admin/Analytics.jsx').then((m) => ({ default: m.AdminSearchAnalytics })));
+const AdminSeo = lazy(() => import('./pages/admin/Analytics.jsx').then((m) => ({ default: m.AdminSeo })));
+const AdminWebhooks = lazy(() => import('./pages/admin/Webhooks.jsx'));
 
 function RequireAuth({ children }) {
   const { user, booted } = useApp();
@@ -124,6 +129,10 @@ export default function App() {
             <Route path="staff" element={<RequirePermission perm="staff.manage"><AdminStaff /></RequirePermission>} />
             <Route path="settings" element={<RequirePermission perm="platform.settings"><AdminSettings /></RequirePermission>} />
             <Route path="audit" element={<RequirePermission perm="audit.view"><AdminAudit /></RequirePermission>} />
+            <Route path="inbox" element={<RequirePermission perm="platform.content"><AdminInbox /></RequirePermission>} />
+            <Route path="analytics" element={<RequirePermission perm="platform.content"><AdminSearchAnalytics /></RequirePermission>} />
+            <Route path="seo" element={<RequirePermission perm="platform.content"><AdminSeo /></RequirePermission>} />
+            <Route path="webhooks" element={<RequirePermission perm="finance.view"><AdminWebhooks /></RequirePermission>} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Route>
 
@@ -145,6 +154,7 @@ export default function App() {
             <Route path="stores" element={<Stores />} />
             <Route path="stores/:slug" element={<StoreDetail />} />
             <Route path="pricing" element={<Pricing />} />
+            <Route path="pricing/:code" element={<PlanDetail />} />
 
             <Route path="post" element={<RequireAuth><PostListing /></RequireAuth>} />
             <Route path="listings/:id/edit" element={<RequireAuth><PostListing edit /></RequireAuth>} />

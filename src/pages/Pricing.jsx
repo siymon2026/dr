@@ -79,7 +79,9 @@ export default function Pricing() {
           return (
             <div key={plan.id} className={`card plan-card ${popular ? 'popular' : ''}`}>
               {popular && <span className="chip chip-accent" style={{ width: 'fit-content' }}>{t('pricing.popular')}</span>}
-              <h3 style={{ fontSize: '1.05rem' }}>{pickName(plan.name, lang)}</h3>
+              <h3 style={{ fontSize: '1.05rem' }}>
+                <Link to={`/pricing/${plan.code}`} style={{ color: 'inherit' }}>{pickName(plan.name, lang)}</Link>
+              </h3>
               <p className="small muted">{pickName(plan.description, lang)}</p>
               <div className="plan-price">
                 {plan.price === 0 ? t('common.free') : formatPrice(plan.price, plan.currency, lang)}
@@ -95,7 +97,13 @@ export default function Pricing() {
               <div style={{ marginTop: 'auto' }}>
                 {isCurrent ? (
                   <span className="chip chip-success" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing.current')}</span>
-                ) : plan.price === 0 ? (
+                ) : null}
+                {!isCurrent && (
+                  <Link to={`/pricing/${plan.code}`} className="btn btn-ghost btn-sm btn-block" style={{ marginBottom: 6 }}>
+                    {t('pricing.details')}
+                  </Link>
+                )}
+                {isCurrent ? null : plan.price === 0 ? (
                   <Link to={user ? '/post' : '/register'} className="btn btn-outline btn-block">{t('hero.cta')}</Link>
                 ) : (
                   <Button

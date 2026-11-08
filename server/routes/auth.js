@@ -18,6 +18,7 @@ import {
   CSRF_COOKIE,
 } from '../lib/security.js';
 import { authAvatar } from '../lib/storage.js';
+import { getSettings } from '../lib/settings.js';
 import { z, validate, emailSchema, phoneSchema, text } from '../lib/validation.js';
 import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
 import { asyncHandler } from '../lib/errors.js';
@@ -100,6 +101,7 @@ router.post(
   '/register',
   limiters.register,
   asyncHandler(async (req, res) => {
+    if (!getSettings().signup_enabled) throw forbidden('signup_disabled');
     const data = validate(registerSchema, req.body);
     const issues = passwordIssues(data.password);
     if (issues.length) throw badRequest('weak_password', { password: issues.join(',') });

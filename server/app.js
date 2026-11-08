@@ -11,6 +11,7 @@ import { db } from './lib/db.js';
 import { logger } from './lib/logger.js';
 import { attachUser, ensureCsrfCookie, serializeUser } from './lib/auth.js';
 import { csrfProtect, limiters } from './lib/http.js';
+import { publicSettings } from './lib/settings.js';
 import { AppError } from './lib/errors.js';
 
 import authRoutes from './routes/auth.js';
@@ -95,18 +96,39 @@ export function createApp() {
     res.json({ ok: true, env: config.env, time: new Date().toISOString() }),
   );
 
+  // Public platform metadata (site name, maintenance banner, channels, quotas).
+  app.get('/api/settings/public', (_req, res) => res.json(publicSettings()));
+
   app.get('/api/session', (req, res) => {
     const csrfToken = ensureCsrfCookie(req, res);
+    const settings = publicSettings();
     res.json({
       user: serializeUser(req.user, { self: true }),
       csrfToken,
       paymentsLive: false,
+      settings,
       flags: {
         mail: config.mail.enabled,
         sms: config.sms.enabled,
         push: config.push.enabled,
-        moderationAutoApprove: config.moderation.autoApprove,
+        moderationAutoApprove: settings.auto_approve,
+        signup: settings.signup_enabled,
       },
+    });
+  });
+
+  // ---------- maintenance mode ----------
+  // Staff can always sign in and browse the dashboard; everyone else gets a clear
+  // 503 on module endpoints while the flag is on.
+  app.use('/api', (req, res, next) => {
+    if (!publicSettings().maintenance.mode) return next();
+    const staffRoles = ['support', 'finance', 'moderator', 'admin', 'superadmin'];
+    if (req.user && staffRoles.includes(req.user.role)) return next();
+    const publicPaths = ['/health', '/session', '/settings/public', '/auth/login', '/auth/logout'];
+    if (publicPaths.some((p) => req.path === p || req.path.startsWith(`${p}/`))) return next();
+    if (req.method === 'GET' && req.path.startsWith('/content/')) return next();
+    res.status(503).json({
+      error: { code: 'maintenance_mode', message: 'maintenance_mode', details: publicSettings().maintenance.message },
     });
   });
 

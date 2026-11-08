@@ -193,69 +193,171 @@ export function AdminNotifications() {
 
 /* =========================== settings =========================== */
 
+const SETTING_GROUPS = [
+  { key: 'general', fields: ['site_name_ar', 'site_name_fr', 'site_name_en'] },
+  { key: 'contact', fields: ['support_email', 'support_phone', 'contact_inbox'] },
+  { key: 'listings', fields: ['listing_ttl_days', 'free_listing_quota', 'listing_max_images'] },
+  { key: 'moderation', fields: ['moderation_auto_approve'] },
+  { key: 'maintenance', fields: ['maintenance_mode', 'maintenance_message_ar', 'maintenance_message_fr', 'maintenance_message_en'] },
+  { key: 'access', fields: ['signup_enabled'] },
+];
+
 export function AdminSettings() {
-  const { t, toast, errorMessage } = useApp();
-  const [items, setItems] = useState(null);
+  const { t, lang, toast, errorMessage, refreshSettings } = useApp();
+  const [data, setData] = useState(null);
   const [drafts, setDrafts] = useState({});
-  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(null);
+  const [group, setGroup] = useState('general');
+
+  const hydrate = useCallback((d) => {
+    setData(d);
+    setDrafts(
+      Object.fromEntries(
+        d.known_keys.map((k) => [k, typeof d.effective[k] === 'boolean' ? d.effective[k] : String(d.effective[k] ?? '')]),
+      ),
+    );
+  }, []);
 
   const load = useCallback(() => {
-    api.get('/admin/settings').then((r) => {
-      setItems(r.items);
-      setDrafts(Object.fromEntries(r.items.map((i) => [i.key, typeof i.value === 'object' ? JSON.stringify(i.value) : String(i.value)])));
-    }).catch((err) => toast(errorMessage(err), 'error'));
-  }, [toast, errorMessage]);
+    api.get('/admin/settings').then(hydrate).catch((err) => toast(errorMessage(err), 'error'));
+  }, [hydrate, toast, errorMessage]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const save = async (key) => {
-    setBusy(true);
+    setSaving(key);
     try {
+      const type = data.types?.[key] || typeof data.defaults[key];
       let value = drafts[key];
-      try {
-        value = JSON.parse(drafts[key]);
-      } catch {
-        /* keep string */
-      }
-      await api.put(`/admin/settings/${key}`, { value });
+      if (type === 'number') value = Number(value);
+      if (type !== 'boolean' && type !== 'number') value = String(value ?? '');
+      await api.put(`/admin/settings/${encodeURIComponent(key)}`, { value });
       toast(t('account.saved'), 'success');
+      await refreshSettings();
       load();
     } catch (err) {
       toast(errorMessage(err), 'error');
     } finally {
-      setBusy(false);
+      setSaving(null);
     }
   };
 
+  const reset = async (key) => {
+    setSaving(key);
+    try {
+      await api.del(`/admin/settings/${encodeURIComponent(key)}`);
+      toast(t('account.saved'), 'success');
+      await refreshSettings();
+      load();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const overrides = data?.override_keys || [];
+  const active = SETTING_GROUPS.find((g) => g.key === group) || SETTING_GROUPS[0];
+
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <h1 style={{ fontSize: '1.3rem' }}>{t('admin.settings')}</h1>
-      {!items && <div className="skeleton" style={{ height: 260 }} />}
-      <div className="stack" style={{ gap: 8 }}>
-        {items?.map((item) => (
-          <div key={item.key} className="card card-pad row" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-              <b className="small" dir="ltr">{item.key}</b>
-              <div className="tiny muted">{t('common.edit')} · {formatDate(item.updated_at)}</div>
-            </div>
-            <input
-              className="input"
-              style={{ flex: '1 1 220px' }}
-              value={drafts[item.key] ?? ''}
-              onChange={(e) => setDrafts({ ...drafts, [item.key]: e.target.value })}
-              dir="ltr"
-            />
-            <Button size="sm" variant="outline" loading={busy} onClick={() => save(item.key)} icon="check">{t('common.save')}</Button>
-          </div>
+      <div className="row-between" style={{ flexWrap: 'wrap', gap: 10 }}>
+        <h1 style={{ fontSize: '1.3rem' }}>{t('admin.settings')}</h1>
+        <span className="chip tiny"><Icon name="info" size={12} /> {t('admin.settingsRestartNote')}</span>
+      </div>
+
+      {data?.effective?.maintenance_mode && <Alert type="warning" icon="alert">{t('maintenance.banner')}</Alert>}
+
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+        {SETTING_GROUPS.map((g) => (
+          <button key={g.key} type="button" className={`chip ${group === g.key ? 'chip-brand' : ''}`} onClick={() => setGroup(g.key)}>
+            {t(`admin.settingsGroup.${g.key}`)}
+          </button>
         ))}
       </div>
+
+      {!data && <div className="skeleton" style={{ height: 300 }} />}
+
+      {data && (
+        <div className="stack" style={{ gap: 10 }}>
+          {active.fields.map((key) => {
+            const type = data.types?.[key] || typeof data.defaults[key];
+            const overridden = overrides.includes(key);
+            const dirty = String(drafts[key]) !== String(typeof data.effective[key] === 'boolean' ? data.effective[key] : data.effective[key] ?? '');
+            return (
+              <div key={key} className="card card-pad stack" style={{ gap: 8 }}>
+                <div className="row-between" style={{ flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <b className="small" dir="ltr">{key}</b>
+                    <div className="tiny muted">{t(`admin.settingsHint.${key}`)}</div>
+                  </div>
+                  <span className={`chip tiny ${overridden ? 'chip-brand' : ''}`}>
+                    {overridden ? t('admin.settingsOverridden') : t('admin.settingsDefault')}
+                  </span>
+                </div>
+
+                {type === 'boolean' ? (
+                  <label className="row" style={{ gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!drafts[key]}
+                      onChange={(e) => setDrafts({ ...drafts, [key]: e.target.checked })}
+                    />
+                    <span className="small">{t(`admin.settingsHint.${key}`)}</span>
+                  </label>
+                ) : type === 'number' ? (
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    style={{ maxWidth: 220 }}
+                    value={drafts[key] ?? ''}
+                    onChange={(e) => setDrafts({ ...drafts, [key]: e.target.value })}
+                    dir="ltr"
+                  />
+                ) : (
+                  <input
+                    className="input"
+                    value={drafts[key] ?? ''}
+                    onChange={(e) => setDrafts({ ...drafts, [key]: e.target.value })}
+                    dir={key.startsWith('site_name_ar') || key.endsWith('_ar') ? 'rtl' : 'ltr'}
+                  />
+                )}
+
+                <div className="row" style={{ gap: 6 }}>
+                  <Button size="sm" loading={saving === key} disabled={!dirty} onClick={() => save(key)} icon="check">
+                    {t('common.save')}
+                  </Button>
+                  {overridden && (
+                    <Button size="sm" variant="ghost" loading={saving === key} onClick={() => reset(key)} icon="refresh">
+                      {t('admin.settingsReset')}
+                    </Button>
+                  )}
+                  {dirty && (
+                    <button
+                      type="button"
+                      className="chip tiny"
+                      onClick={() =>
+                        setDrafts({
+                          ...drafts,
+                          [key]: typeof data.effective[key] === 'boolean' ? data.effective[key] : String(data.effective[key] ?? ''),
+                        })
+                      }
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
-
-/* =========================== staff & permissions =========================== */
 
 export function AdminStaff() {
   const { t, toast, errorMessage, user } = useApp();
