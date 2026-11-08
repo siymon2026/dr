@@ -106,14 +106,20 @@ export function AppProvider({ children }) {
     (err) => {
       if (!err) return t('common.error');
       if (err.code === 'network_error') return t('common.offline');
-      const key = `errors.${err.code || err.message}`;
-      const translated = t(key);
-      if (translated !== key) return translated;
-      if (err.message && typeof err.message === 'string' && err.message.includes('.')) {
-        const key2 = `errors.${err.message}`;
-        const t2 = t(key2);
-        if (t2 !== key2) return t2;
+      const candidates = [err.code, err.message].filter((v) => typeof v === 'string' && v);
+      for (const candidate of candidates) {
+        const key = `errors.${candidate}`;
+        const translated = t(key);
+        if (translated !== key) return translated;
       }
+      // Fall back to a humanised server message rather than a generic error.
+      if (typeof err.message === 'string' && err.message && !/^[a-z0-9_.]+$/.test(err.message)) {
+        return err.message;
+      }
+      if (err.status === 403) return t('errors.permission_denied');
+      if (err.status === 404) return t('errors.not_found');
+      if (err.status === 429) return t('errors.rate_limited');
+      if (err.status >= 500) return t('errors.server_error');
       return t('common.error');
     },
     [t],

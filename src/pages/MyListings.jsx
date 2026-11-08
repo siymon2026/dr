@@ -42,8 +42,9 @@ export default function MyListings() {
         toast(t('common.delete'), 'success');
         setConfirmDelete(null);
       } else {
-        const res = await api.post(`/listings/${listing.id}/status`, { action: act });
-        toast(`${t('myListings.stats')}: ${res.status}`, 'success');
+        await api.post(`/listings/${listing.id}/status`, { action: act });
+        const key = { pause: 'myListings.paused', resume: 'myListings.active', sold: 'myListings.sold', republish: 'myListings.active' }[act];
+        toast(key ? t(key) : t('account.saved'), 'success');
       }
       load();
     } catch (err) {

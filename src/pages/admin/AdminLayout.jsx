@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { NavLink, Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
+import Header from '../../components/Header.jsx';
+import Footer from '../../components/Footer.jsx';
+import { BottomNav } from '../../components/Layout.jsx';
 import { useApp } from '../../state/AppContext.jsx';
 import { Toasts } from '../../components/ui.jsx';
 
@@ -50,24 +53,29 @@ export default function AdminLayout() {
   const items = NAV.filter((n) => !n.perm || user.permissions.includes(n.perm));
 
   return (
-    <div className="admin-shell">
-      <nav className="admin-nav" aria-label="admin">
-        <div className="nav-label">{t('admin.title')}</div>
-        {items.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : '')}>
-            <Icon name={item.icon} size={17} />
-            {t(item.labelKey)}
-          </NavLink>
-        ))}
-        <div className="menu-sep" />
-        <Link to="/" className="menu-item">
-          <Icon name="home" size={16} /> {t('nav.home')}
-        </Link>
-      </nav>
-      <div className="admin-main" key={location.pathname}>
-        <Outlet />
+    <>
+      <Header />
+      <div className="admin-shell">
+        <nav className="admin-nav" aria-label="admin">
+          <div className="nav-label">{t('admin.title')}</div>
+          {items.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : '')}>
+              <Icon name={item.icon} size={17} />
+              {t(item.labelKey)}
+            </NavLink>
+          ))}
+          <div className="menu-sep" />
+          <Link to="/" className="menu-item">
+            <Icon name="home" size={16} /> {t('nav.home')}
+          </Link>
+        </nav>
+        <div className="admin-main" key={location.pathname}>
+          <Outlet />
+        </div>
       </div>
+      <Footer />
+      <BottomNav />
       <Toasts />
-    </div>
+    </>
   );
 }
