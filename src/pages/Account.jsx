@@ -28,6 +28,7 @@ export default function Account() {
   const [reports, setReports] = useState([]);
   const [orders, setOrders] = useState([]);
   const [otpState, setOtpState] = useState({ sending: false, code: '', dev: null, busy: false });
+  const [blocks, setBlocks] = useState([]);
   const avatarRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function Account() {
     api.get('/auth/me/activity').then((r) => setActivity(r.items)).catch(() => {});
     api.get('/reports/mine').then((r) => setReports(r.items)).catch(() => {});
     api.get('/payments/orders').then((r) => setOrders(r.items)).catch(() => {});
+    api.get('/conversations/blocks/list').then((r) => setBlocks(r.items || [])).catch(() => setBlocks([]));
   }, [user]);
 
   if (!user) return null;
@@ -151,10 +153,21 @@ export default function Account() {
     }
   };
 
+  const unblock = async (blockedUser) => {
+    try {
+      await api.del(`/conversations/block/${blockedUser.id}`);
+      setBlocks((prev) => prev.filter((b) => b.id !== blockedUser.id));
+      toast(t('account.unblocked'), 'success');
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  };
+
   const tabs = [
     { value: 'profile', label: t('account.profile') },
     { value: 'privacy', label: t('account.privacy') },
     { value: 'security', label: t('account.security') },
+    { value: 'blocks', label: t('account.blocks') },
     { value: 'activity', label: t('account.activity') },
     { value: 'orders', label: t('account.orders') },
   ];
@@ -334,6 +347,30 @@ export default function Account() {
               >
                 {t('nav.logout')}
               </Button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'blocks' && (
+          <div className="stack" style={{ gap: 14 }}>
+            <div>
+              <h3 className="small strong">{t('account.blocks')}</h3>
+              <p className="tiny muted">{t('account.blocksIntro')}</p>
+            </div>
+            {blocks.length === 0 && <p className="small muted">{t('account.noBlocks')}</p>}
+            <div className="stack" style={{ gap: 8 }}>
+              {blocks.map((b) => (
+                <div key={b.id} className="row-between" style={{ padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 10, gap: 10 }}>
+                  <Link to={`/users/${b.id}`} className="row" style={{ gap: 10, minWidth: 0 }}>
+                    <Avatar src={b.avatar} name={b.name} size="sm" />
+                    <span style={{ minWidth: 0 }}>
+                      <b className="small">{b.name}</b>
+                      <span className="tiny muted" style={{ display: 'block' }}>{timeAgo(b.created_at, t)}</span>
+                    </span>
+                  </Link>
+                  <Button size="sm" variant="ghost" onClick={() => unblock(b)} icon="ban">{t('account.unblock')}</Button>
+                </div>
+              ))}
             </div>
           </div>
         )}

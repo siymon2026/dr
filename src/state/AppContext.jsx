@@ -40,6 +40,7 @@ export function AppProvider({ children }) {
   const [theme, setThemeState] = useState(() => readLocal(THEME_KEY, 'light'));
   const [user, setUser] = useState(null);
   const [booted, setBooted] = useState(false);
+  const [settings, setSettings] = useState(null);
   const [cities, setCities] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cityId, setCityIdState] = useState(() => {
@@ -60,7 +61,15 @@ export function AppProvider({ children }) {
   const listenersRef = useRef(new Set());
 
   /* ---------------- i18n ---------------- */
-  const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
+  // Site name is editable from the admin dashboard; fall back to the locale string.
+  const siteName = settings?.site_name?.[lang] || settings?.site_name?.ar || null;
+  const t = useCallback(
+    (key, vars) => {
+      if (key === 'brand.name' && siteName) return siteName;
+      return translate(lang, key, vars);
+    },
+    [lang, siteName],
+  );
   const dir = dirFor(lang);
 
   useEffect(() => {
@@ -130,7 +139,19 @@ export function AppProvider({ children }) {
     const data = await api.get('/session');
     setCsrfToken(data.csrfToken);
     setUser(data.user);
+    if (data.settings) setSettings(data.settings);
     return data.user;
+  }, []);
+
+  /** Re-read public platform settings (site name, maintenance banner, quotas). */
+  const refreshSettings = useCallback(async () => {
+    try {
+      const data = await api.get('/settings/public');
+      setSettings(data);
+      return data;
+    } catch {
+      return null;
+    }
   }, []);
 
   const refreshCounts = useCallback(async () => {
@@ -161,6 +182,13 @@ export function AppProvider({ children }) {
   }, [user, refreshCounts]);
 
   // Initial reference data
+  useEffect(() => {
+    api
+      .get('/settings/public')
+      .then(setSettings)
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     Promise.all([api.get('/geo/cities'), api.get('/categories')])
       .then(([c, cat]) => {
@@ -334,6 +362,8 @@ export function AppProvider({ children }) {
       dismissToast,
       errorMessage,
       subscribeEvents,
+      settings,
+      refreshSettings,
       recentSearches,
       rememberSearch,
       requestGeolocation,
@@ -342,7 +372,7 @@ export function AppProvider({ children }) {
     [
       lang, dir, setLang, t, theme, toggleTheme, user, booted, login, register, logout, updateUser,
       refreshSession, cities, activeCity, cityId, setCity, categories, unread, refreshCounts, toast,
-      toasts, dismissToast, errorMessage, subscribeEvents, recentSearches, rememberSearch,
+      toasts, dismissToast, errorMessage, subscribeEvents, settings, refreshSettings, recentSearches, rememberSearch,
       requestGeolocation, geoCoords,
     ],
   );

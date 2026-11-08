@@ -56,11 +56,50 @@ export function BottomNav() {
   );
 }
 
+/**
+ * Shown to visitors while the platform is in maintenance mode. Staff (any role
+ * with admin permissions) keep browsing so the switch can be turned back off.
+ */
+function MaintenanceScreen() {
+  const { t, lang, settings } = useApp();
+  const message = settings?.maintenance?.message?.[lang] || t('maintenance.default');
+  return (
+    <div>
+      <Header />
+      <main id="main" className="container" style={{ paddingTop: 60, paddingBottom: 80, maxWidth: 620 }}>
+        <div className="card card-pad center stack" style={{ gap: 12, alignItems: 'center' }}>
+          <Icon name="tools" size={40} style={{ color: 'var(--brand)' }} />
+          <h1 style={{ fontSize: 'clamp(1.25rem,3vw,1.6rem)' }}>{t('maintenance.title')}</h1>
+          <p className="small muted">{message}</p>
+        </div>
+      </main>
+      <Footer />
+      <Toasts />
+    </div>
+  );
+}
+
+function MaintenanceBanner() {
+  const { t, user, settings } = useApp();
+  if (!settings?.maintenance?.mode || !user?.permissions?.length) return null;
+  return (
+    <div className="container" style={{ paddingTop: 10 }}>
+      <div className="maintenance-banner">
+        <Icon name="alert" size={14} /> {t('maintenance.banner')}
+      </div>
+    </div>
+  );
+}
+
 export default function Layout({ children }) {
+  const { settings, user, booted } = useApp();
+  const maintenance = settings?.maintenance?.mode && !user?.permissions?.length;
+  if (booted && maintenance) return <MaintenanceScreen />;
   return (
     <>
       <ScrollToTop />
       <Header />
+      <MaintenanceBanner />
       <main id="main">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </main>

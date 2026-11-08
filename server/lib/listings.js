@@ -4,8 +4,20 @@ import { config } from '../config.js';
 import { randomToken } from './security.js';
 import { notify, NOTIFICATION_TYPES } from './notify.js';
 import { audit } from './audit.js';
+import { getSettings } from './settings.js';
 
 export const LISTING_TTL_DAYS = 60;
+
+/** Listing lifetime in ms — admin-editable via settings, falls back to 60 days. */
+export function listingTtlMs() {
+  const days = Number(getSettings().listing_ttl_days) || LISTING_TTL_DAYS;
+  return days * 864e5;
+}
+
+/** Whether newly created/republished listings go live immediately. */
+export function autoApproveEnabled() {
+  return !!getSettings().moderation_auto_approve;
+}
 export const CONDITIONS = ['new', 'used_excellent', 'used_good', 'needs_repair'];
 
 export const PUBLIC_LISTING_COLUMNS = `
@@ -353,7 +365,7 @@ export function quotaFor(userId) {
   const activeCount = db
     .prepare("SELECT COUNT(*) c FROM listings WHERE user_id = ? AND status IN ('active','pending','paused')")
     .get(userId).c;
-  const freeQuota = 5;
+  const freeQuota = getSettings().free_listing_quota;
   if (!sub) {
     return { plan: null, quota: freeQuota, used: activeCount, remaining: Math.max(0, freeQuota - activeCount) };
   }
@@ -369,7 +381,7 @@ export function quotaFor(userId) {
 export function createListingRecord(user, data) {
   const ts = now();
   const publicId = randomToken(9).replace(/[-_]/g, '').slice(0, 12);
-  const status = config.moderation.autoApprove ? 'active' : 'pending';
+  const status = autoApproveEnabled() ? 'active' : 'pending';
   const info = db
     .prepare(
       `INSERT INTO listings (
@@ -396,7 +408,7 @@ export function createListingRecord(user, data) {
       data.attributes ? JSON.stringify(data.attributes) : null,
       data.contact_phone ?? user.phone ?? null,
       status,
-      ts + LISTING_TTL_DAYS * 864e5,
+      ts + listingTtlMs(),
       status === 'active' ? ts : null,
       ts,
       ts,
@@ -419,11 +431,11 @@ export function republishListing(listing, actor) {
     throw conflict('listing_cannot_be_republished');
   }
   const ts = now();
-  const status = config.moderation.autoApprove ? 'active' : 'pending';
+  const status = autoApproveEnabled() ? 'active' : 'pending';
   db.prepare(
     `UPDATE listings SET status = ?, expires_at = ?, published_at = COALESCE(published_at, ?), bumped_at = ?,
        rejection_reason = NULL, updated_at = ? WHERE id = ?`,
-  ).run(status, ts + LISTING_TTL_DAYS * 864e5, ts, ts, ts, listing.id);
+  ).run(status, ts + listingTtlMs(), ts, ts, ts, listing.id);
   return status;
 }
 
