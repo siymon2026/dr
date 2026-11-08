@@ -10,6 +10,9 @@ export const PERMISSIONS = {
   'users.edit': ['admin', 'superadmin'],
   'users.status': ['admin', 'superadmin', 'moderator'],
   'users.verify': ['admin', 'superadmin'],
+  // Support/Moderation can action an account status; profile editing stays with admins.
+  'moderation.users': ['admin', 'superadmin', 'moderator'],
+  'support.inbox': ['admin', 'superadmin', 'support', 'moderator'],
   'users.roles': ['superadmin'],
   'listings.view': ['admin', 'superadmin', 'moderator', 'support'],
   'listings.moderate': ['admin', 'superadmin', 'moderator'],

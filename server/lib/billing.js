@@ -35,7 +35,7 @@ export function applyPaidOrder(orderId, { provider = 'manual', providerRef = nul
           );
         } else {
           db.prepare(
-            `INSERT INTO subscriptions (user_id, plan_id, order_id, starts_at, ends_at, listing_used, status, created_at)
+            `INSERT INTO subscriptions (user_id, plan_id, order_id, starts_at, ends_at, listings_used, status, created_at)
              VALUES (?,?,?,?,?,0,'active',?)`,
           ).run(order.user_id, plan.id, order.id, ts, ts + plan.duration_days * 864e5, ts);
         }

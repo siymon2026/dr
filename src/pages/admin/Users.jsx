@@ -45,8 +45,17 @@ export default function AdminUsers() {
   const patch = async (payload) => {
     setBusy(true);
     try {
-      const res = await api.patch(`/admin/users/${detail.user.id}`, payload);
-      setDetail({ ...detail, user: res.user });
+      // Profile edits need users.edit; moderators/support action accounts through
+      // the dedicated status endpoint so each portal can do its job.
+      const statusOnly = payload.status && !can('users.edit');
+      const res = statusOnly
+        ? await api.post(`/admin/users/${detail.user.id}/status`, {
+            status: payload.status,
+            reason: payload.status_reason,
+          })
+        : await api.patch(`/admin/users/${detail.user.id}`, payload);
+      if (res.user) setDetail({ ...detail, user: res.user });
+      else setDetail({ ...detail, user: { ...detail.user, ...payload } });
       load();
       toast(t('account.saved'), 'success');
     } catch (err) {
