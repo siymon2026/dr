@@ -369,6 +369,7 @@ export const dict = {
 
     'common.loading': 'جاري التحميل…',
     'common.date': 'التاريخ',
+    'common.status': 'الحالة',
     'auth.otpSend': 'إرسال رمز التحقق',
     'pricing.coupon': 'كود الخصم',
     'myListings.updated': 'آخر تحديث',
@@ -484,6 +485,11 @@ export const dict = {
     'admin.revenue': 'الإيرادات',
     'admin.subscriptions': 'الاشتراكات النشطة',
     'admin.export': 'تصدير CSV',
+
+    'admin.orders': 'الطلبات',
+    'admin.expiresAt': 'ينتهي في',
+    'admin.daysLeft': 'أيام متبقية',
+    'admin.expiredSubs': 'اشتراكات منتهية',
     'admin.inbox': 'صندوق الرسائل',
     'admin.inboxStatus.new': 'جديدة',
     'admin.inboxStatus.open': 'قيد المعالجة',
@@ -924,6 +930,7 @@ export const dict = {
 
     'common.loading': 'Chargement…',
     'common.date': 'Date',
+    'common.status': 'Statut',
     'auth.otpSend': 'Envoyer le code',
     'pricing.coupon': 'Code promo',
     'myListings.updated': 'Mis à jour',
@@ -1039,6 +1046,11 @@ export const dict = {
     'admin.revenue': 'Revenus',
     'admin.subscriptions': 'Abonnements actifs',
     'admin.export': 'Exporter CSV',
+
+    'admin.orders': 'Commandes',
+    'admin.expiresAt': 'Expire le',
+    'admin.daysLeft': 'Jours restants',
+    'admin.expiredSubs': 'Abonnements expirés',
     'admin.inbox': 'Boîte de réception',
     'admin.inboxStatus.new': 'Nouveau',
     'admin.inboxStatus.open': 'En cours',
@@ -1479,6 +1491,7 @@ export const dict = {
 
     'common.loading': 'Loading…',
     'common.date': 'Date',
+    'common.status': 'Status',
     'auth.otpSend': 'Send verification code',
     'pricing.coupon': 'Coupon code',
     'myListings.updated': 'Last updated',
@@ -1595,6 +1608,11 @@ export const dict = {
     'admin.subscriptions': 'Active subscriptions',
     'admin.cities': 'Cities & areas',
     'admin.export': 'Export CSV',
+
+    'admin.orders': 'Orders',
+    'admin.expiresAt': 'Expires on',
+    'admin.daysLeft': 'Days left',
+    'admin.expiredSubs': 'Expired subscriptions',
     'admin.inbox': 'Inbox',
     'admin.inboxStatus.new': 'New',
     'admin.inboxStatus.open': 'In progress',

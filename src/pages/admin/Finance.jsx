@@ -11,6 +11,8 @@ export function AdminFinance() {
   const [orders, setOrders] = useState(null);
   const [status, setStatus] = useState('all');
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState('orders');
+  const [subs, setSubs] = useState(null);
 
   const canManage = user?.permissions?.includes('finance.manage');
 
@@ -18,6 +20,7 @@ export function AdminFinance() {
     setOrders(null);
     api.get('/admin/finance/summary').then(setSummary).catch((err) => toast(errorMessage(err), 'error'));
     api.get(`/admin/orders${qs({ status: status === 'all' ? '' : status, limit: 60 })}`).then((r) => setOrders(r.items)).catch(() => setOrders([]));
+    api.get('/admin/subscriptions?limit=100').then(setSubs).catch(() => setSubs({ items: [], stats: {} }));
   }, [status, toast, errorMessage]);
 
   useEffect(() => {
@@ -60,12 +63,60 @@ export function AdminFinance() {
         ))}
       </div>
 
-      <Tabs items={['all', 'pending', 'paid', 'failed', 'refunded'].map((s) => ({ value: s, label: s }))} value={status} onChange={setStatus} />
+      <Tabs
+        items={[
+          { value: 'orders', label: t('admin.orders') },
+          { value: 'subscriptions', label: t('admin.subscriptions') },
+        ]}
+        value={view}
+        onChange={setView}
+      />
 
-      {!orders && <div className="skeleton" style={{ height: 280 }} />}
-      {orders && orders.length === 0 && <div className="card"><EmptyState icon="money" title={t('search.noResults')} /></div>}
+      {view === 'subscriptions' && (
+        <div className="stack" style={{ gap: 12 }}>
+          <div className="kpi-grid">
+            <StatCard label={t('admin.subscriptions')} value={subs?.stats?.active ?? '—'} icon="crown" />
+            <StatCard label={t('admin.revenue')} value={subs ? formatPrice(subs.stats?.mrr || 0, 'MAD', lang) : '—'} icon="money" />
+            <StatCard label={t('admin.expiredSubs')} value={subs?.stats?.expired ?? '—'} icon="clock" />
+          </div>
+          {!subs && <div className="skeleton" style={{ height: 240 }} />}
+          {subs && subs.items.length === 0 && <div className="card"><EmptyState icon="crown" title={t('search.noResults')} /></div>}
+          {subs && subs.items.length > 0 && (
+            <div className="table-wrap">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>{t('admin.users')}</th>
+                    <th>{t('admin.plans')}</th>
+                    <th>{t('admin.expiresAt')}</th>
+                    <th>{t('admin.daysLeft')}</th>
+                    <th>{t('common.status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subs.items.map((s2) => (
+                    <tr key={s2.id}>
+                      <td>
+                        <b className="small">{s2.user_name}</b>
+                        <div className="tiny muted" dir="ltr">{s2.email}</div>
+                      </td>
+                      <td className="small">{s2.name?.[lang] || s2.plan_code}</td>
+                      <td className="tiny nowrap">{formatDate(s2.ends_at, lang)}</td>
+                      <td className="tiny">{s2.days_left}</td>
+                      <td><StatusChip status={s2.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
-      {orders && orders.length > 0 && (
+      {view === 'orders' && !orders && <div className="skeleton" style={{ height: 280 }} />}
+      {view === 'orders' && orders && orders.length === 0 && <div className="card"><EmptyState icon="money" title={t('search.noResults')} /></div>}
+
+      {view === 'orders' && orders && orders.length > 0 && (
         <div className="table-wrap">
           <table className="data">
             <thead>

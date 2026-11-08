@@ -182,6 +182,11 @@ router.patch(
       if (!can(req.user, 'users.roles')) throw forbidden('role_change_not_allowed');
       if (!canAssignRole(req.user, data.role)) throw forbidden('cannot_grant_role');
       if (roleRank(data.role) >= roleRank(req.user.role)) throw forbidden('cannot_grant_equal_or_higher_role');
+      // Never demote the last superadmin: nobody would be able to grant roles again.
+      if (target.role === 'superadmin') {
+        const supers = db.prepare("SELECT COUNT(*) c FROM users WHERE role='superadmin' AND status='active'").get().c;
+        if (supers <= 1) throw forbidden('cannot_demote_last_superadmin');
+      }
     }
     if (data.status && ['admin', 'superadmin'].includes(target.role) && target.id !== req.user.id) {
       if (roleRank(req.user.role) <= roleRank(target.role)) throw forbidden('cannot_moderate_peer_admin');
@@ -238,6 +243,42 @@ router.patch(
       });
     }
     res.json({ user: serializeUser(loadUser(target.id), { self: true }) });
+  }),
+);
+
+router.post(
+  '/users/:id/status',
+  requirePermission('moderation.users'),
+  asyncHandler(async (req, res) => {
+    const target = loadUser(Number(req.params.id));
+    if (!target) throw notFound('user_not_found');
+    const d = validate(
+      z.object({ status: z.enum(['active', 'suspended', 'banned']), reason: text(0, 300).optional() }),
+      req.body,
+    );
+    if (target.id === req.user.id) throw badRequest('cannot_disable_self');
+    if (['admin', 'superadmin'].includes(target.role) && roleRank(req.user.role) <= roleRank(target.role)) {
+      throw forbidden('cannot_moderate_peer_admin');
+    }
+    db.prepare('UPDATE users SET status=?, status_reason=?, updated_at=? WHERE id=?').run(
+      d.status,
+      d.reason || null,
+      now(),
+      target.id,
+    );
+    if (d.status !== 'active') {
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').run(target.id);
+    }
+    audit(req, 'user.status_changed', { entityType: 'user', entityId: target.id, meta: { status: d.status } });
+    if (d.status !== 'active') {
+      notify(target.id, {
+        type: NOTIFICATION_TYPES.ACCOUNT_UPDATE,
+        titleKey: `notif.account_${d.status}`,
+        body: d.reason || '',
+        link: '/account',
+      });
+    }
+    res.json({ ok: true, user: serializeUser(loadUser(target.id), { self: true }) });
   }),
 );
 
@@ -594,6 +635,43 @@ router.get(
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="bii3chri-orders.csv"');
     res.send(`\uFEFF${header}${body}`);
+  }),
+);
+
+router.get(
+  '/subscriptions',
+  requirePermission('finance.view'),
+  asyncHandler(async (req, res) => {
+    const where = ['1=1'];
+    const params = {};
+    if (req.query.status && req.query.status !== 'all') {
+      where.push('s.status = @status');
+      params.status = String(req.query.status);
+    }
+    params.limit = Math.min(200, Number(req.query.limit) || 60);
+    const items = db
+      .prepare(
+        `SELECT s.*, u.name AS user_name, u.email, p.code AS plan_code,
+                p.name_ar AS plan_name_ar, p.name_fr AS plan_name_fr, p.name_en AS plan_name_en
+         FROM subscriptions s
+         JOIN users u ON u.id = s.user_id
+         JOIN plans p ON p.id = s.plan_id
+         WHERE ${where.join(' AND ')}
+         ORDER BY s.created_at DESC LIMIT @limit`,
+      )
+      .all(params);
+    const ts = now();
+    const active = db
+      .prepare("SELECT COUNT(*) c, COALESCE(SUM(p.price_cents),0) mrr FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE s.status='active' AND s.ends_at > ?")
+      .get(ts);
+    res.json({
+      items: items.map((r) => ({
+        ...r,
+        name: { ar: r.plan_name_ar, fr: r.plan_name_fr, en: r.plan_name_en },
+        days_left: Math.max(0, Math.ceil((r.ends_at - ts) / 864e5)),
+      })),
+      stats: { active: active.c, mrr: active.m / 100, expired: db.prepare("SELECT COUNT(*) c FROM subscriptions WHERE status='expired' OR ends_at <= ?").get(ts).c },
+    });
   }),
 );
 
@@ -1428,7 +1506,7 @@ router.get(
 
 router.get(
   '/inbox',
-  requirePermission('platform.content'),
+  requirePermission('support.inbox'),
   asyncHandler(async (req, res) => {
     const where = ['1=1'];
     const params = {};
@@ -1459,7 +1537,7 @@ router.get(
 
 router.put(
   '/inbox/:id',
-  requirePermission('platform.content'),
+  requirePermission('support.inbox'),
   asyncHandler(async (req, res) => {
     const d = validate(
       z.object({ status: z.enum(['new', 'open', 'answered', 'closed', 'spam']), note: text(0, 2000).optional() }),

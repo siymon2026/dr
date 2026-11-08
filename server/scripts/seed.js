@@ -26,15 +26,17 @@ const DEMO = !args.has('--no-demo') && config.seed.demo;
 
 if (RESET) {
   logger.warn('resetting database (all tables dropped)');
-  db.exec(`
-    PRAGMA foreign_keys = OFF;
-    DROP TABLE IF EXISTS listings_fts;
-    DROP TABLE IF EXISTS search_queries, activity_log, audit_log, contact_messages, settings, notifications,
-      faqs, pages, payment_webhooks, subscriptions, orders, coupons, boost_products, plans, reports, reviews,
-      blocks, messages, conversations, listing_views, favorites, listing_images, listings, store_followers,
-      stores, categories, areas, cities, user_permissions, otp_codes, password_resets, sessions, users;
-    PRAGMA foreign_keys = ON;
-  `);
+  // SQLite has no comma-separated DROP TABLE — drop each table individually.
+  const tables = [
+    'listings_fts', 'search_queries', 'activity_log', 'audit_log', 'contact_messages', 'settings',
+    'notifications', 'faqs', 'pages', 'payment_webhooks', 'subscriptions', 'orders', 'coupons',
+    'boost_products', 'plans', 'reports', 'reviews', 'blocks', 'messages', 'conversations',
+    'listing_views', 'favorites', 'listing_images', 'listings', 'store_followers', 'stores',
+    'categories', 'areas', 'cities', 'user_permissions', 'otp_codes', 'password_resets', 'sessions', 'users',
+  ];
+  db.exec('PRAGMA foreign_keys = OFF;');
+  for (const table of tables) db.exec(`DROP TABLE IF EXISTS ${table};`);
+  db.exec('PRAGMA foreign_keys = ON;');
 }
 
 migrate();
@@ -324,8 +326,194 @@ function seedDemo() {
     logger.info('demo reviews created');
   }
 
+  seedOperations(demoUsers);
+
   logger.info('demo accounts ready — password: Demo@12345');
   return demoUsers;
+}
+
+/**
+ * Operational demo data so every staff portal (finance, support, moderation)
+ * opens with real work in it instead of empty tables.
+ */
+function seedOperations(demoUsers) {
+  const ts = now();
+  const day = 864e5;
+  const [owner] = demoUsers;
+
+  // A couple of fresh listings waiting for moderation + one full report queue.
+  const pendingTemplate = [
+    { cat: 'smartphones', title: 'سامسونج جالاكسي S23 ألترا 256 جيجا', price: 720000, city: 'casablanca' },
+    { cat: 'laptops', title: 'لينوفو ثينك باد i5 الجيل العاشر', price: 480000, city: 'rabat' },
+    { cat: 'motorcycles', title: 'دراجة هوندا 125 موديل 2020', price: 1950000, city: 'fes' },
+  ];
+  if (db.prepare("SELECT COUNT(*) c FROM listings WHERE status='pending'").get().c === 0) {
+    for (const [i, tpl] of pendingTemplate.entries()) {
+      const cat = db.prepare('SELECT id FROM categories WHERE slug = ?').get(tpl.cat);
+      const city = db.prepare('SELECT id FROM cities WHERE slug = ?').get(tpl.city);
+      if (!cat || !city) continue;
+      const seller = demoUsers[(i + 1) % demoUsers.length];
+      db.prepare(
+        `INSERT INTO listings (public_id, user_id, category_id, title, description, price_cents, currency, condition,
+          city_id, status, views_count, expires_at, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,'MAD','used_good',?,'pending',0,?,?,?)`,
+      ).run(
+        `demo-pending-${i + 1}`,
+        seller,
+        cat.id,
+        tpl.title,
+        'إعلان جديد بانتظار مراجعة فريق الإشراف قبل النشر. الوصف كامل والصور مرفقة من البائع.',
+        tpl.price,
+        city.id,
+        ts + 60 * day,
+        ts - (i + 1) * 3600 * 1000,
+        ts - (i + 1) * 3600 * 1000,
+      );
+    }
+    logger.info({ pending: pendingTemplate.length }, 'pending listings queued for moderation');
+  }
+
+  // Stores waiting for moderation + one suspended, so the stash of store tools is exercised.
+  if (db.prepare("SELECT COUNT(*) c FROM stores WHERE status != 'active'").get().c === 0) {
+    const pendingStores = [
+      { ownerEmail: 'noura@demo.ma', name: 'نورة لمنتجات الأطفال', slug: 'noura-kids', city: 'agadir', status: 'pending', verified: 0, desc: 'متجر متخصص في منتجات الأطفال ومستلزمات التجميل الأصلية بأسعار مناسبة وضمان الاسترجاع.' },
+      { ownerEmail: 'hind@demo.ma', name: 'مكتبة هند', slug: 'hind-books', city: 'oujda', status: 'pending', verified: 0, desc: 'كتب مدرسية وجامعية ودورات تكوينية، توصيل لجميع المدن مع إمكانية الدفع عند الاستلام.' },
+      { ownerEmail: 'karim@demo.ma', name: 'كريم للسيارات', slug: 'karim-cars', city: 'meknes', status: 'suspended', verified: 0, desc: 'وسيط بيع سيارات مستعملة بالتقسيط، مع فحص تقني قبل البيع واستشارة مجانية.' },
+    ];
+    for (const [i, st] of pendingStores.entries()) {
+      if (db.prepare('SELECT 1 FROM stores WHERE slug = ?').get(st.slug)) continue;
+      const owner = db.prepare('SELECT id FROM users WHERE email = ?').get(st.ownerEmail);
+      const city = db.prepare('SELECT id FROM cities WHERE slug = ?').get(st.city);
+      if (!owner) continue;
+      db.prepare(
+        `INSERT INTO stores (user_id, name, slug, description, city_id, status, verified, featured, followers_count,
+                             rating_avg, rating_count, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,0,0,0,0,?,?)`,
+      ).run(owner.id, st.name, st.slug, st.desc, city?.id ?? null, st.status, st.verified, ts - (i + 1) * day, ts - (i + 1) * day);
+    }
+    logger.info('pending/suspended stores queued for moderation');
+  }
+
+  if (db.prepare('SELECT COUNT(*) c FROM reports').get().c === 0) {
+    const activeListings = db.prepare("SELECT id FROM listings WHERE status='active' ORDER BY id LIMIT 6").all();
+    const reasons = [
+      ['scam', 'السعر منخفض جداً ويطلب الدفع مقدماً عبر تحويل بنكي.', 'open'],
+      ['wrong_category', 'الإعلان منشور في تصنيف غير مناسب.', 'open'],
+      ['duplicate', 'نفس الإعلان منشور عدة مرات.', 'reviewing'],
+      ['counterfeit', 'المنتج يبدو مقلداً وليس أصلياً.', 'resolved'],
+    ];
+    reasons.forEach(([reason, details, status], i) => {
+      const target = activeListings[i % activeListings.length];
+      if (!target) return;
+      db.prepare(
+        `INSERT INTO reports (reporter_id, target_type, target_id, reason, details, status, created_at, updated_at)
+         VALUES (?, 'listing', ?, ?, ?, ?, ?, ?)`,
+      ).run(demoUsers[(i + 2) % demoUsers.length], target.id, reason, details, status, ts - i * 6 * 3600e3, ts - i * 6 * 3600e3);
+    });
+    logger.info('demo reports created');
+  }
+
+  // Support inbox: a few unanswered contact-form messages.
+  if (db.prepare('SELECT COUNT(*) c FROM contact_messages').get().c === 0) {
+    const messages = [
+      ['سلمى بناني', 'salma@demo.ma', 'استرجاع كلمة المرور', 'نسيت كلمة المرور ولم يصلني رابط الاستعادة. ماذا أفعل؟', 'new'],
+      ['كريم برادة', 'karim@demo.ma', 'سؤال حول الباقة الاحترافية', 'هل يمكنني ترقية باقتي في منتصف الشهر؟ وهل تُحسب المدة المتبقية؟', 'new'],
+      ['هند المرابط', 'hind@demo.ma', 'إعلان مرفوض', 'تم رفض إعلاني دون سبب واضح، أرجو التوضيح لأصحح الإعلان.', 'open'],
+      ['أمين التازي', 'amine@demo.ma', 'مشكلة في رفع الصور', 'عند رفع أكثر من 3 صور تظهر رسالة خطأ. جربت من الهاتف والحاسوب.', 'answered'],
+    ];
+    messages.forEach(([name, email, subject, message, status], i) => {
+      db.prepare('INSERT INTO contact_messages (name, email, subject, message, status, created_at) VALUES (?,?,?,?,?,?)').run(
+        name, email, subject, message, status, ts - i * 9 * 3600e3,
+      );
+    });
+    logger.info('demo support inbox created');
+  }
+
+  // Finance: paid plan order + active subscription, one pending order, one boost.
+  if (db.prepare('SELECT COUNT(*) c FROM orders').get().c === 0) {
+    const pro = db.prepare("SELECT * FROM plans WHERE code='pro'").get();
+    const boost = db.prepare("SELECT * FROM boost_products WHERE code='feature-7'").get();
+    const listing = db.prepare("SELECT id FROM listings WHERE user_id = ? AND status='active' LIMIT 1").get(owner);
+    const mkRef = (i) => `BC-DEMO${String(i + 1).padStart(4, '0')}`;
+
+    if (pro) {
+      db.prepare(
+        `INSERT INTO orders (reference, user_id, kind, plan_id, amount_cents, currency, status, provider, provider_ref, created_at, paid_at)
+         VALUES (?,?, 'plan', ?,?, 'MAD', 'paid', 'manual', 'seed', ?, ?)`,
+      ).run(mkRef(0), owner, pro.id, pro.price_cents, ts - 9 * day, ts - 9 * day);
+      db.prepare(
+        `INSERT INTO subscriptions (user_id, plan_id, starts_at, ends_at, listings_used, status, created_at)
+         VALUES (?,?,?,?,0,'active',?)`,
+      ).run(owner, pro.id, ts - 9 * day, ts + (pro.duration_days - 9) * day, ts - 9 * day);
+    }
+    if (boost && listing) {
+      db.prepare(
+        `INSERT INTO orders (reference, user_id, kind, boost_id, listing_id, amount_cents, currency, status, provider, provider_ref, created_at, paid_at)
+         VALUES (?,?, 'boost', ?, ?, ?, 'MAD', 'paid', 'manual', 'seed', ?, ?)`,
+      ).run(mkRef(1), owner, boost.id, listing.id, boost.price_cents, ts - 4 * day, ts - 4 * day);
+      db.prepare('UPDATE listings SET is_featured = 1, featured_until = ? WHERE id = ?').run(ts + boost.duration_days * day, listing.id);
+    }
+    const business = db.prepare("SELECT * FROM plans WHERE code='business'").get();
+    if (business) {
+      db.prepare(
+        `INSERT INTO orders (reference, user_id, kind, plan_id, amount_cents, currency, status, provider, created_at)
+         VALUES (?,?, 'plan', ?,?, 'MAD', 'pending', 'manual', ?)`,
+      ).run(mkRef(2), demoUsers[1], business.id, business.price_cents, ts - 2 * day);
+    }
+    logger.info('demo orders & subscriptions created');
+  }
+
+  // Search analytics.
+  if (db.prepare('SELECT COUNT(*) c FROM search_queries').get().c === 0) {
+    const terms = [
+      ['iphone', 42], ['سيارة', 31], ['شقة', 27], ['laptop', 22], ['دراجة', 18],
+      ['آيفون 14', 15], ['samsung', 12], ['sofa', 9], ['بلاي ستيشن', 8], ['tangier apartment', 0],
+      ['yamaha r6', 0], ['macbook m3', 6], ['قفطان', 5], ['frigo', 4], ['trottinette electrique', 0],
+    ];
+    const insert = db.prepare('INSERT INTO search_queries (query, results, user_id, created_at) VALUES (?,?,?,?)');
+    db.transaction(() => {
+      terms.forEach(([query, results], i) => {
+        const hits = Math.max(1, Math.round(results / 6));
+        for (let h = 0; h < hits; h += 1) {
+          insert.run(query, results, h % 3 === 0 ? demoUsers[h % demoUsers.length] : null, ts - (i + h) * 5 * 3600e3);
+        }
+      });
+    })();
+    logger.info('demo search queries created');
+  }
+
+  // Payment webhook log (one accepted, one rejected delivery) — payments stay off.
+  if (db.prepare('SELECT COUNT(*) c FROM payment_webhooks').get().c === 0) {
+    const insert = db.prepare(
+      'INSERT INTO payment_webhooks (provider, event, payload, signature_ok, processed, created_at) VALUES (?,?,?,?,?,?)',
+    );
+    insert.run('stripe', 'checkout.session.completed', JSON.stringify({ id: 'evt_demo_1', type: 'checkout.session.completed', data: { object: { client_reference_id: 'BC-DEMO0001', amount_total: 9900 } } }), 1, 1, ts - 9 * day);
+    insert.run('stripe', 'checkout.session.completed', JSON.stringify({ id: 'evt_demo_2', type: 'checkout.session.completed', error: 'signature mismatch' }), 0, 0, ts - 3 * day);
+    insert.run('cmi', 'APPROVED', JSON.stringify({ PROCESSAUTH: 'demo', amount: 249 }), 0, 0, ts - 2 * day);
+    logger.info('demo webhook log created');
+  }
+
+  // Audit trail + a broadcast notification so the audit page is meaningful.
+  if (db.prepare('SELECT COUNT(*) c FROM audit_log').get().c === 0) {
+    const staff = db.prepare("SELECT id, role FROM users WHERE role IN ('superadmin','moderator','finance','support')").all();
+    const insert = db.prepare(
+      'INSERT INTO audit_log (actor_id, action, entity_type, entity_id, meta, ip, created_at) VALUES (?,?,?,?,?,?,?)',
+    );
+    const events = [
+      ['listing.approved', 'listing', 1],
+      ['listing.rejected', 'listing', 2],
+      ['user.status_changed', 'user', 5],
+      ['order.marked_paid', 'order', 1],
+      ['setting.updated', 'setting', null],
+      ['report.resolved', 'report', 1],
+    ];
+    events.forEach(([action, entity, id], i) => {
+      const actor = staff[i % staff.length];
+      if (!actor) return;
+      insert.run(actor.id, action, entity, id, JSON.stringify({ seed: true }), '127.0.0.1', ts - i * 4 * 3600e3);
+    });
+    logger.info('demo audit entries created');
+  }
 }
 
 /* ------------------------------ run ------------------------------ */
